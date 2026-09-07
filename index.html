@@ -1,0 +1,2192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>Écran d'accueil — La Maternelle French Academy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;600;700&family=Nunito:wght@500;700;800;900&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* ============================================================
+   CONFIGURATION VISUELLE — voir le bloc CONFIG dans le <script>
+   tout en bas pour modifier les contenus (anniversaires,
+   messages de sécurité, mots du jour, météo).
+   ============================================================ */
+:root{
+  --blue:#003B71; --blue-deep:#00284f; --lightblue:#73C2E6; --yellow:#FFCF57;
+  --pink:#F76C5E; --white:#F7F7F7; --green:#3FA796;
+  --cream:#FFCF57; --paper:#FFF8EA;
+  --ink:#003B71; --ink-soft:rgba(0,59,113,.56); --ink-faint:rgba(0,59,113,.34);
+  --ring:rgba(0,59,113,.08);
+}
+*{box-sizing:border-box; margin:0; padding:0}
+/* les emojis convertis en image par Twemoji doivent garder la taille du texte qu'ils
+   remplacent (sinon ils s'afficheraient tous à une taille fixe, ex. minuscule) */
+img.emoji{height:1em; width:1em; vertical-align:-.1em; object-fit:contain}
+html,body{height:100%}
+body{
+  font-family:'Nunito',sans-serif; color:var(--ink);
+  background:linear-gradient(170deg,#FFFDF8 0%,#FBF3E4 100%);
+  width:100vw; height:100dvh; overflow:hidden; position:relative;
+  cursor:none;
+}
+body.show-cursor{cursor:auto}
+h1,h2,h3{font-family:'Mitr',sans-serif}
+
+/* décor fixe : arche douce + pastilles discrètes */
+#sky{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+#sky svg{position:absolute}
+.dot{position:absolute; border-radius:50%; opacity:.28}
+
+/* ---------- système de couleur par catégorie ---------- */
+.cat-blue     { --cat:var(--blue);      --cat-tint:#E7EFF6; --cat-mat:#CFE1F0; }
+.cat-lightblue{ --cat:var(--lightblue); --cat-tint:#EAF6FC; --cat-mat:#CDEEF8; }
+.cat-yellow   { --cat:#E3A600;          --cat-tint:#FFF6DE; --cat-mat:#FFE49E; }
+.cat-pink     { --cat:var(--pink);      --cat-tint:#FDEEEC; --cat-mat:#FBC9C1; }
+.cat-green    { --cat:var(--green);     --cat-tint:#E9F7F4; --cat-mat:#C3EBE1; }
+
+/* ---------- structure générale ---------- */
+#app{position:relative; z-index:1; width:100%; height:100%; display:flex; flex-direction:column}
+
+/* ---------- entête ---------- */
+header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:clamp(14px,2vh,26px) clamp(20px,3vw,44px);
+  flex:0 0 auto;
+}
+.brand{display:flex; align-items:center; gap:clamp(12px,1.6vw,20px)}
+.brand .mark{height:clamp(44px,5.6vw,68px); width:auto; display:block; cursor:pointer}
+.brand .names{line-height:1.15}
+.brand .sub{font-weight:700; font-size:clamp(11px,1.05vw,14px); letter-spacing:.08em; color:var(--blue); opacity:.55; text-transform:uppercase}
+
+.clock-badge{
+  display:flex; align-items:baseline; gap:14px; background:#fff; border-radius:999px;
+  padding:clamp(8px,1vh,12px) clamp(18px,2vw,28px); box-shadow:0 6px 20px var(--ring);
+  border:1px solid rgba(0,59,113,.06);
+}
+.clock-badge .time{font-family:'Mitr',sans-serif; font-weight:600; font-size:clamp(20px,2.4vw,32px); color:var(--ink)}
+.clock-badge .date{font-weight:800; font-size:clamp(11px,1.05vw,14px); color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; max-width:32vw}
+
+/* ---------- corps : rail d'onglets + carte ---------- */
+main{flex:1 1 auto; display:flex; gap:clamp(10px,1.4vw,22px); padding:0 clamp(20px,3vw,44px) clamp(14px,2vh,26px); min-height:0}
+
+#tabs{flex:0 0 auto; display:flex; flex-direction:column; justify-content:center; gap:clamp(9px,1.2vh,15px)}
+.tab{
+  width:clamp(50px,5vw,68px); height:clamp(50px,5vw,68px); border-radius:16px;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff; opacity:.6; transform:translateX(0) scale(.9);
+  box-shadow:0 4px 10px var(--ring); border:1px solid rgba(0,59,113,.05);
+  transition:all .45s cubic-bezier(.4,0,.2,1);
+}
+.tab svg{width:52%; height:52%}
+.tab.active{
+  opacity:1; transform:translateX(8px) scale(1.08);
+  background:var(--cat,var(--blue)); box-shadow:0 10px 22px var(--ring);
+}
+.tab.active svg{filter:brightness(0) invert(1)}
+
+#stage{flex:1 1 auto; position:relative; min-width:0}
+.card{
+  position:absolute; inset:0;
+  opacity:0; transform:translateY(14px) scale(.99);
+  transition:opacity .6s ease, transform .6s ease;
+  pointer-events:none; overflow:hidden;
+}
+.card.active{opacity:1; transform:translateY(0) scale(1); pointer-events:auto}
+/* la classe de catégorie (cat-blue, cat-pink…) EST le mat festonné : ainsi --cat-mat,
+   défini sur cet élément, s'applique directement à son propre fond (la cascade CSS ne
+   remonte pas aux ancêtres, d'où la fusion catégorie + mat sur un seul élément) */
+.card-mat{
+  position:relative; isolation:isolate; width:100%; height:100%;
+  background:var(--cat-mat,var(--cream));
+  border-radius:30px; border:1px solid rgba(0,59,113,.06);
+  box-shadow:0 24px 60px -12px rgba(0,32,64,.16), 0 2px 8px rgba(0,32,64,.05);
+  padding:clamp(28px,4vh,58px) clamp(32px,4.4vw,72px);
+  display:flex; flex-direction:column;
+}
+
+.card-flower{position:absolute; z-index:-1; left:-1%; bottom:-3%; width:clamp(70px,7vw,120px); height:clamp(70px,7vw,120px); opacity:.4; pointer-events:none}
+.card-squiggle{position:absolute; z-index:-1; right:1%; bottom:3%; width:clamp(80px,8.5vw,140px); opacity:.35; pointer-events:none}
+
+/* l'étiquette est en flux normal (pas position:absolute) : elle réserve donc toujours sa
+   vraie hauteur, quelle que soit sa taille (police, viewport TV très large, etc.), et ne
+   peut plus jamais chevaucher le contenu qui suit — contrairement à un calcul de position
+   figé qui se déréglait dès que l'étiquette changeait de taille */
+.eyebrow{position:relative; z-index:1; margin-bottom:clamp(14px,2vh,26px); display:flex; justify-content:flex-end}
+.tape-label{
+  transform:rotate(-4deg);
+  display:flex; align-items:center; gap:18px;
+  background:#FDF9EC; padding:16px 40px 18px 24px;
+  clip-path:polygon(0% 22%,2% 0%,98% 0%,100% 22%,100% 78%,98% 100%,2% 100%,0% 78%);
+  box-shadow:0 8px 20px rgba(0,0,0,.18);
+}
+.tape-icon{flex:0 0 auto; width:clamp(38px,3.4vw + 1.6vh,60px); height:clamp(38px,3.4vw + 1.6vh,60px)}
+.tape-icon svg{width:100%; height:100%}
+.tape-text{display:flex; flex-direction:column; gap:2px; line-height:1.08}
+.tape-text .fr{font-family:'Kalam',cursive; font-weight:700; font-size:clamp(22px,1.7vw + 1.2vh,36px); color:var(--cat,var(--blue))}
+.tape-text .en{font-weight:800; font-size:clamp(13px,.95vw + .55vh,18px); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint)}
+
+.slide-body{flex:1; display:flex; align-items:center; justify-content:center; gap:clamp(24px,3vw,64px); min-height:0}
+
+/* ---------- footer : barre de progression + puces ---------- */
+footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); display:flex; align-items:center; gap:16px}
+#progress-track{flex:1; height:6px; border-radius:999px; background:rgba(0,59,113,.09); overflow:hidden}
+#progress-fill{height:100%; width:0%; background:var(--pink); border-radius:999px}
+#dots{display:flex; gap:7px}
+#dots span{width:7px; height:7px; border-radius:50%; background:rgba(0,59,113,.16)}
+#dots span.active{background:var(--ink); width:20px; border-radius:6px; transition:all .4s}
+
+/* ================= gabarits de contenu ================= */
+.big-clock{font-family:'Mitr',sans-serif; font-weight:700; font-size:clamp(90px,9vw + 8vh,280px); color:var(--ink); line-height:1; letter-spacing:-.01em}
+.date-line{font-weight:800; font-size:clamp(20px,1.4vw + 1.4vh,38px); color:var(--ink); margin-top:14px}
+.date-line .en{display:block; color:var(--ink-faint); opacity:1; font-weight:700; font-size:.72em; margin-top:6px}
+
+.weather-split{display:grid; grid-template-columns:1fr 1fr; align-items:stretch; gap:clamp(20px,3vw,48px)}
+.weather-left{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(14px,2.2vh,30px); min-width:0}
+.weather-now{display:flex; align-items:center; justify-content:center; gap:clamp(16px,2vw,32px)}
+.weather-icon{flex:0 0 auto; width:clamp(100px,7vw + 6vh,190px); height:clamp(100px,7vw + 6vh,190px)}
+.weather-temp{font-family:'Mitr',sans-serif; font-weight:700; font-size:clamp(58px,5vw + 6vh,160px); color:var(--ink); line-height:1}
+.weather-cond{font-weight:800; font-size:clamp(20px,1.4vw + 1.6vh,32px); color:var(--lightblue); margin-top:8px}
+.weather-cond .en{color:var(--ink-faint)}
+.weather-meta{display:flex; gap:clamp(16px,2vw,32px); margin-top:clamp(14px,2vh,26px)}
+.weather-meta .item{background:var(--cat-tint,#EAF4FB); border-radius:18px; padding:12px 20px; font-weight:800; font-size:clamp(14px,1vw + .9vh,20px); color:var(--ink)}
+.weather-city{font-weight:700; font-size:clamp(14px,1vw + .7vh,18px); color:var(--ink-faint); margin-top:10px}
+.weather-forecast{display:flex; gap:clamp(10px,1.4vw,20px)}
+.fc-day{
+  background:var(--cat-tint,#EAF4FB); border-radius:18px; padding:clamp(10px,1vh + .6vw,18px) clamp(12px,1.4vw,22px);
+  display:flex; flex-direction:column; align-items:center; gap:6px; min-width:clamp(64px,7vw,96px);
+}
+.fc-day .fc-name{font-weight:800; font-size:clamp(12px,.8vw + .7vh,15px); color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em}
+.fc-day .fc-icon{width:clamp(30px,2.4vw + 2vh,48px); height:clamp(30px,2.4vw + 2vh,48px)}
+.fc-day .fc-temps{font-weight:800; font-size:clamp(13px,1vw + .8vh,18px); color:var(--ink); white-space:nowrap}
+.fc-day .fc-temps .lo{color:var(--ink-faint); font-weight:700}
+
+.content-icon{
+  flex:0 0 auto; width:clamp(120px,6vw + 8vh,200px); height:clamp(120px,6vw + 8vh,200px);
+  border-radius:30px; background:var(--cat-tint,#EAF4FB); display:flex; align-items:center; justify-content:center;
+  font-size:clamp(56px,3.2vw + 4.6vh,100px); line-height:1; box-shadow:inset 0 0 0 1px rgba(0,59,113,.06);
+}
+.headline{font-family:'Mitr',sans-serif; font-weight:600; font-size:clamp(32px,2.6vw + 3.2vh,68px); color:var(--ink); line-height:1.14}
+.headline .en{display:block; font-size:.56em; color:var(--ink-faint); font-weight:700; margin-top:10px}
+
+.calendar-countdown{
+  display:inline-block; background:var(--cat,var(--pink)); color:#fff; font-weight:900;
+  font-size:clamp(15px,1vw + .9vh,22px); padding:10px 26px; border-radius:999px; margin-bottom:18px;
+}
+.calendar-countdown .en{opacity:.85}
+.calendar-date{font-weight:700; font-size:clamp(16px,.9vw + .9vh,24px); color:var(--ink-soft); margin-top:14px}
+.calendar-date .en{color:var(--ink-faint)}
+
+/* ---------- vue d'ensemble du mois (v4) ---------- */
+.month-cal{width:100%; height:100%; display:flex; flex-direction:column; gap:clamp(8px,1.2vh,14px); min-height:0}
+.month-cal-head{display:grid; grid-template-columns:repeat(7,1fr); gap:clamp(5px,.8vh,10px)}
+.month-cal-head span{
+  text-align:center; font-weight:800; font-size:clamp(11px,.8vw + .5vh,16px);
+  color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em;
+}
+.month-cal-grid{flex:1.3; display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:1fr; gap:clamp(5px,.8vh,10px); min-height:0}
+.month-cal-day{
+  position:relative; border-radius:14px; background:rgba(255,255,255,.6);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+}
+.month-cal-day.empty{background:transparent}
+.month-cal-num{font-weight:800; font-size:clamp(13px,.9vw + 1vh,22px); color:var(--ink)}
+.month-cal-day.today{background:var(--cat,var(--blue)); box-shadow:0 6px 16px rgba(0,32,64,.22)}
+.month-cal-day.today .month-cal-num{color:#fff}
+.month-cal-icons{display:flex; gap:2px; font-size:clamp(12px,.9vw + .6vh,18px); line-height:1}
+
+/* liste des évènements du mois : nom + date, sous la grille */
+.month-cal-events{
+  flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;
+  gap:clamp(4px,.8vh,8px); padding-top:clamp(2px,.6vh,6px);
+}
+.month-cal-event{
+  flex:0 0 auto; display:flex; align-items:center; gap:clamp(10px,1.2vw,16px);
+  background:rgba(255,255,255,.55); border-left:5px solid var(--ev-color,var(--ink-faint));
+  border-radius:10px; padding:clamp(6px,.9vh,10px) clamp(10px,1.4vw,16px);
+}
+.month-cal-event-day{
+  flex:0 0 auto; min-width:2.4em; text-align:center; font-weight:900;
+  font-size:clamp(13px,.85vw + .7vh,18px); color:var(--ev-color,var(--ink));
+}
+.month-cal-event-icon{flex:0 0 auto; font-size:clamp(15px,1vw + .8vh,22px); line-height:1}
+.month-cal-event-name{
+  flex:1; min-width:0; font-weight:800; font-size:clamp(13px,.85vw + .7vh,18px); color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.month-cal-event-name .en{color:var(--ink-faint); font-weight:700}
+.month-cal-event-type{
+  flex:0 0 auto; font-weight:800; font-size:clamp(10px,.65vw + .4vh,13px); color:var(--ink-faint);
+  text-transform:uppercase; letter-spacing:.04em; display:none;
+}
+@media (min-width:1100px){ .month-cal-event-type{display:block} }
+
+/* ---------- écran Sports (v4) ---------- */
+.sports-grid{width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(14px,2vw,28px)}
+.sports-team{
+  display:flex; flex-direction:column; align-items:center; text-align:center; gap:clamp(8px,1.2vh,14px);
+  background:rgba(255,255,255,.55); border-radius:22px; padding:clamp(16px,2.2vh,28px) clamp(10px,1.4vw,18px);
+}
+.sports-logo{width:clamp(56px,6vw + 3vh,96px); height:clamp(56px,6vw + 3vh,96px); object-fit:contain}
+.sports-name{font-family:'Mitr',sans-serif; font-weight:700; font-size:clamp(15px,1vw + .8vh,20px); color:var(--ink)}
+.sports-name .en{display:block; font-size:.72em; font-weight:700; color:var(--ink-faint); margin-top:2px}
+.sports-record{font-weight:700; font-size:clamp(11px,.7vw + .5vh,14px); color:var(--ink-soft)}
+.sports-status{font-weight:700; font-size:clamp(12px,.75vw + .5vh,15px); color:var(--ink-faint)}
+.sports-status .en{display:block; font-size:.85em; margin-top:2px}
+.sports-result{display:flex; flex-direction:column; align-items:center; gap:5px; margin-top:6px}
+.sports-tag{
+  display:inline-flex; align-items:center; justify-content:center; width:1.5em; height:1.5em; border-radius:50%;
+  color:#fff; font-weight:900; font-size:clamp(20px,1.4vw + 1vh,30px); margin-bottom:2px;
+}
+.sports-result.win .sports-tag{background:var(--green)}
+.sports-result.loss .sports-tag{background:var(--pink)}
+.sports-score{font-weight:900; font-size:clamp(34px,2.6vw + 2.2vh,54px); color:var(--ink); line-height:1}
+.sports-opp{font-weight:800; font-size:clamp(16px,1.05vw + .8vh,22px); color:var(--ink-soft)}
+.sports-when{font-weight:700; font-size:clamp(12px,.7vw + .5vh,15px); color:var(--ink-faint)}
+.sports-next{
+  margin-top:4px; font-weight:700; font-size:clamp(11px,.72vw + .5vh,14px); color:var(--ink-soft);
+  background:var(--cat-tint); border-radius:999px; padding:6px 14px;
+}
+.sports-next .lbl{color:var(--cat,var(--green)); font-weight:900; text-transform:uppercase; letter-spacing:.03em; font-size:.85em}
+.sports-next .lbl .en{opacity:.7}
+@media (max-width:820px){ .sports-grid{grid-template-columns:1fr} }
+
+.birthday-list{display:flex; flex-direction:column; align-items:center; gap:12px; margin-top:16px}
+.birthday-pill{
+  display:flex; align-items:center; gap:16px; background:var(--cat-tint,#fff); color:var(--ink);
+  border-radius:999px; padding:14px 30px; font-weight:800; font-size:clamp(18px,1.3vw + 1.3vh,30px);
+  width:fit-content; box-shadow:inset 0 0 0 1px rgba(0,59,113,.06);
+}
+.birthday-pill .role{font-size:.6em; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; font-weight:800}
+
+.word-card{display:flex; flex-direction:column; align-items:center; gap:8px}
+.word-fr{font-family:'Mitr',sans-serif; font-weight:700; font-size:clamp(60px,5.6vw + 7.4vh,158px); color:var(--pink)}
+.word-en{font-weight:800; font-size:clamp(26px,1.8vw + 2.4vh,48px); color:var(--ink-soft)}
+.word-hint{font-weight:700; font-size:clamp(14px,.9vw + .7vh,18px); color:var(--ink-faint); margin-top:8px}
+
+.wrap-fallback{font-weight:800; font-size:clamp(20px,2.4vw,30px); color:var(--ink-soft)}
+
+/* masqué tant que Leaflet n'a pas mesuré/positionné ses tuiles correctement : sans ça, on
+   peut apercevoir une image furtivement mal dimensionnée/décalée pendant la fraction de
+   seconde qui suit l'arrivée sur l'écran météo */
+.radar-wrap{position:relative; min-width:0; min-height:0; border-radius:28px; overflow:hidden; background:#EAF4FB; opacity:0; transition:opacity .35s ease}
+.radar-wrap.ready{opacity:1}
+.radar-map{position:absolute; inset:0}
+.radar-live{
+  position:absolute; top:14px; right:14px; z-index:500; display:flex; align-items:center; gap:8px;
+  background:#fff; padding:8px 18px; border-radius:999px; font-weight:800; font-size:clamp(12px,1vw,14px);
+  color:var(--blue); box-shadow:0 6px 16px rgba(0,59,113,.18);
+}
+.radar-dot{width:8px; height:8px; border-radius:50%; background:var(--pink); animation:radarPulse 1.6s ease-in-out infinite}
+@keyframes radarPulse{0%,100%{opacity:1} 50%{opacity:.25}}
+.radar-pin{width:16px; height:16px; border-radius:50% 50% 50% 0; background:var(--pink); border:3px solid #fff; transform:rotate(-45deg); box-shadow:0 3px 8px rgba(0,0,0,.3)}
+
+.custom-photo{max-width:100%; max-height:56vh; border-radius:28px; object-fit:cover; box-shadow:0 16px 40px rgba(0,59,113,.2)}
+/* cadre photo "façon Canva" repris de .collage-frame, pour qu'une page à une seule photo
+   ait exactement le même style que la page collage (cadre bleu ciel, image en contain) */
+.custom-frame{position:relative; width:min(70%,600px); flex:0 0 auto; aspect-ratio:4/3; max-height:56vh;
+  border-radius:18px; overflow:hidden; background:#CDEBFA; box-shadow:0 16px 40px rgba(0,59,113,.2)}
+
+/* ---------- panneau "Ajouter une page" ---------- */
+#adminModal{
+  position:fixed; inset:0; z-index:1000; background:rgba(0,40,80,.6);
+  display:none; align-items:center; justify-content:center; padding:24px; cursor:auto;
+}
+#adminModal.open{display:flex}
+.admin-panel{
+  background:#fff; border-radius:32px; max-width:520px; width:100%; max-height:88vh;
+  overflow-y:auto; padding:30px 32px; box-shadow:0 30px 80px rgba(0,0,0,.35);
+}
+.admin-panel h2{font-family:'Mitr',sans-serif; font-size:24px; color:var(--blue); margin-bottom:4px}
+.admin-panel p.hint{font-size:14px; color:var(--blue); opacity:.6; margin-bottom:20px; line-height:1.4}
+.admin-field{margin-bottom:18px}
+.admin-field label{display:block; font-weight:800; font-size:13px; color:var(--blue); margin-bottom:8px}
+.admin-field textarea{
+  width:100%; min-height:90px; border:2px solid #EAF4FB; border-radius:16px; padding:14px;
+  font-family:'Nunito',sans-serif; font-size:15px; resize:vertical; color:var(--blue);
+}
+.admin-field input[type=file]{width:100%; font-size:14px; color:var(--blue)}
+.admin-preview{margin-top:12px; max-width:100%; max-height:180px; border-radius:16px; display:none}
+.admin-actions{display:flex; gap:12px; margin-top:20px}
+.admin-btn{flex:1; border:none; border-radius:999px; padding:14px 18px; font-weight:700; font-family:'Mitr',sans-serif; font-size:15px; cursor:pointer}
+.admin-btn.primary{background:var(--blue); color:#fff}
+.admin-btn.secondary{background:#EAF4FB; color:var(--blue)}
+.admin-list{margin-top:24px; border-top:2px solid #EAF4FB; padding-top:18px}
+.admin-list h3{font-size:13px; color:var(--blue); opacity:.7; margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em}
+.admin-list-item{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #F0F6FB; font-size:14px}
+.admin-list-item .txt{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--blue); font-weight:700}
+.admin-list-item button{border:none; background:var(--pink); color:#fff; border-radius:999px; width:28px; height:28px; cursor:pointer; font-size:14px; flex:0 0 auto}
+.admin-list-item .edit-btn{background:var(--lightblue); margin-right:-2px}
+
+.admin-divider{display:flex; align-items:center; gap:12px; margin:22px 0; color:var(--blue); opacity:.4; font-weight:800; font-size:12px; text-transform:uppercase}
+.admin-divider::before, .admin-divider::after{content:""; flex:1; height:2px; background:#EAF4FB}
+
+/* ---------- décorations libres : stickers/images posés à la main sur une page ---------- */
+.card-decos{position:absolute; inset:0; z-index:30; pointer-events:none}
+.deco{position:absolute; pointer-events:none; user-select:none; line-height:1; touch-action:none; filter:drop-shadow(0 4px 10px rgba(0,0,0,.2))}
+.deco span{display:block; font-size:1em; pointer-events:none}
+.deco img{display:block; width:1em; height:1em; object-fit:contain; -webkit-user-drag:none; user-drag:none; pointer-events:none}
+.deco-del{
+  position:absolute; top:-14px; right:-14px; width:26px; height:26px; border-radius:50%;
+  background:#fff; border:2px solid var(--pink); color:var(--pink); font-weight:900; font-size:14px;
+  align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,.25); display:none;
+}
+/* seule la carte réellement affichée doit devenir cliquable : sinon la couche de décors
+   (vide et invisible) d'une page qui suit dans le DOM se superpose à la page active et
+   intercepte tous les clics/glissers, rendant l'image posée impossible à toucher */
+body.deco-editing .card.active .card-decos{pointer-events:auto}
+body.deco-editing .card.active .deco{pointer-events:auto; cursor:grab; outline:2px dashed rgba(0,59,113,.35); outline-offset:6px; border-radius:10px}
+body.deco-editing .deco.dragging{cursor:grabbing; outline-color:var(--pink)}
+body.deco-editing .deco-del{display:flex}
+
+#decoPalette{
+  position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:1100;
+  display:none; flex-direction:column; gap:12px; align-items:center;
+  background:#fff; border-radius:24px; padding:16px 22px; box-shadow:0 20px 50px rgba(0,0,0,.3);
+  max-width:min(92vw,620px); cursor:auto;
+}
+#decoPalette.open{display:flex}
+.deco-pal-title{font-size:13px; font-weight:800; color:var(--blue); opacity:.65; text-align:center}
+.deco-pal-row{display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap}
+#decoPageSelect{
+  width:100%; border:2px solid #EAF4FB; border-radius:14px; padding:10px 14px;
+  font-family:'Nunito',sans-serif; font-weight:800; font-size:14px; color:var(--blue); background:#F9FCFE; cursor:pointer;
+}
+.deco-pick{
+  border:none; background:#F4F9FD; border-radius:12px; width:44px; height:44px; font-size:22px;
+  cursor:pointer; transition:transform .15s ease;
+}
+.deco-pick:hover{transform:scale(1.12); background:#EAF4FB}
+.deco-pal-upload{
+  display:flex; align-items:center; gap:8px; background:#EAF4FB; color:var(--blue); font-weight:700;
+  font-size:13px; border-radius:999px; padding:10px 18px; cursor:pointer;
+}
+#decoDone{flex:0 0 auto; padding:10px 22px}
+.collage-btn{width:100%; background:var(--yellow); color:var(--blue)}
+
+#collageModal{
+  position:fixed; inset:0; z-index:1001; background:rgba(0,40,80,.6);
+  display:none; align-items:center; justify-content:center; padding:24px; cursor:auto;
+}
+#collageModal.open{display:flex}
+.admin-field input[type=text]{
+  width:100%; border:2px solid #EAF4FB; border-radius:14px; padding:12px 14px;
+  font-family:'Nunito',sans-serif; font-size:15px; color:var(--blue);
+}
+/* la grille de l'éditeur reprend exactement la disposition de .collage-grid
+   (mêmes proportions g1/g2/g3/g4) pour que le cadrage choisi ici soit
+   fidèle à ce qui s'affichera vraiment sur l'écran */
+.col-editor-grid{
+  display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr 1fr;
+  gap:10px; margin-top:6px; height:220px;
+}
+.col-dropzone{
+  position:relative; border-radius:14px; overflow:hidden; cursor:pointer;
+  background:#EAF4FB; border:2px dashed var(--lightblue); display:flex; align-items:center; justify-content:center;
+}
+.col-dropzone[data-i="0"]{grid-column:1; grid-row:1}
+.col-dropzone[data-i="1"]{grid-column:2; grid-row:1}
+.col-dropzone[data-i="2"]{grid-column:3; grid-row:1 / 3}
+.col-dropzone[data-i="3"]{grid-column:1 / 3; grid-row:2}
+.col-preview-frame{
+  width:100%; aspect-ratio:16/9; border-radius:16px; overflow:hidden; background:#EAF4FB; position:relative;
+}
+.col-preview-inner{position:absolute; top:0; left:0; transform-origin:top left}
+.col-dropzone.drag{border-color:var(--pink); background:#FDEDEA}
+.col-dropzone .col-photo{position:absolute; inset:0; background-size:contain; background-repeat:no-repeat; background-position:center; touch-action:none}
+.col-dropzone .col-plus{font-size:30px; font-weight:800; color:var(--lightblue); pointer-events:none}
+.col-dropzone input[type=file]{display:none}
+.col-change{
+  position:absolute; top:6px; right:6px; z-index:2; border:none; border-radius:999px; width:30px; height:30px;
+  background:rgba(255,255,255,.9); font-size:15px; cursor:pointer;
+}
+.col-zoom{position:absolute; left:8px; right:8px; top:8px; z-index:2; width:calc(100% - 16px)}
+.col-pad{
+  position:absolute; left:6px; bottom:6px; z-index:3;
+  display:grid; grid-template-columns:repeat(3,18px); grid-template-rows:repeat(3,18px); gap:2px;
+}
+.col-pad button{
+  border:none; border-radius:4px; background:rgba(255,255,255,.85); color:var(--blue);
+  font-size:9px; line-height:1; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center;
+}
+.col-pad-up{grid-column:2; grid-row:1}
+.col-pad-left{grid-column:1; grid-row:2}
+.col-pad-right{grid-column:3; grid-row:2}
+.col-pad-down{grid-column:2; grid-row:3}
+
+/* ================= gabarit "collage photo" ================= */
+.collage-wrap{width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:clamp(8px,1.2vh,14px); position:relative}
+.collage-flower{position:absolute; left:-2%; bottom:-4%; width:clamp(60px,9vw,120px); height:clamp(60px,9vw,120px); z-index:0; opacity:.9}
+.collage-squiggle{position:absolute; right:-1%; bottom:2%; width:clamp(90px,12vw,160px); z-index:0; opacity:.8}
+.collage-mat{
+  position:relative; z-index:1; width:100%; flex:1; min-height:0; background:var(--pink); border-radius:22px; padding:clamp(10px,1.6vh,18px);
+  --s:20px;
+  /* -webkit- répété pour Chromium plus ancien (ex. Raspberry Pi non mis à jour) : le
+     support de "mask"/"mask-composite" sans préfixe n'est arrivé que tardivement */
+  -webkit-mask:
+    radial-gradient(circle at 50% var(--s), #000 calc(var(--s) - 1px), transparent var(--s)) repeat-x top / calc(var(--s)*2) var(--s),
+    radial-gradient(circle at 50% calc(100% - var(--s)), #000 calc(var(--s) - 1px), transparent var(--s)) repeat-x bottom / calc(var(--s)*2) var(--s),
+    radial-gradient(circle at var(--s) 50%, #000 calc(var(--s) - 1px), transparent var(--s)) repeat-y left / var(--s) calc(var(--s)*2),
+    radial-gradient(circle at calc(100% - var(--s)) 50%, #000 calc(var(--s) - 1px), transparent var(--s)) repeat-y right / var(--s) calc(var(--s)*2),
+    linear-gradient(#000 0 0) center / calc(100% - var(--s)*2) calc(100% - var(--s)*2) no-repeat;
+  -webkit-mask-composite:source-over, source-over, source-over, source-over, source-over;
+  mask:
+    radial-gradient(circle at 50% var(--s), #000 calc(var(--s) - 1px), transparent var(--s)) repeat-x top / calc(var(--s)*2) var(--s),
+    radial-gradient(circle at 50% calc(100% - var(--s)), #000 calc(var(--s) - 1px), transparent var(--s)) repeat-x bottom / calc(var(--s)*2) var(--s),
+    radial-gradient(circle at var(--s) 50%, #000 calc(var(--s) - 1px), transparent var(--s)) repeat-y left / var(--s) calc(var(--s)*2),
+    radial-gradient(circle at calc(100% - var(--s)) 50%, #000 calc(var(--s) - 1px), transparent var(--s)) repeat-y right / var(--s) calc(var(--s)*2),
+    linear-gradient(#000 0 0) center / calc(100% - var(--s)*2) calc(100% - var(--s)*2) no-repeat;
+  mask-composite:add;
+}
+.collage-tape{
+  position:absolute; top:-16px; right:8%; z-index:5; transform:rotate(-6deg);
+  clip-path:polygon(0% 8%,4% 0%,10% 6%,18% 0%,26% 7%,34% 1%,42% 6%,50% 0%,58% 6%,66% 1%,74% 7%,82% 0%,90% 6%,96% 0%,100% 8%,100% 92%,94% 100%,88% 93%,80% 100%,72% 94%,64% 100%,56% 93%,50% 100%,44% 93%,36% 100%,28% 94%,20% 100%,12% 93%,6% 100%,0% 92%);
+  background:#fdf9ec; color:#3FA796; font-family:'Nunito',sans-serif; font-weight:800; font-style:italic;
+  font-size:clamp(14px,1.6vw,20px); padding:14px 26px; box-shadow:0 6px 14px rgba(0,0,0,.18);
+}
+.collage-grid{
+  display:grid; grid-template-columns:1fr 1fr 1fr; grid-template-rows:1fr 1fr;
+  gap:clamp(8px,1.4vh,16px); width:100%; height:100%;
+}
+.collage-grid .g1{grid-column:1; grid-row:1}
+.collage-grid .g2{grid-column:2; grid-row:1}
+.collage-grid .g3{grid-column:3; grid-row:1 / 3}
+.collage-grid .g4{grid-column:1 / 3; grid-row:2}
+.collage-frame{
+  position:relative; width:100%; height:100%; border-radius:14px; overflow:hidden; background:#CDEBFA;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);
+}
+.collage-photo{position:absolute; inset:0; background-size:contain; background-repeat:no-repeat; background-position:center}
+.collage-frame svg{width:100%; height:100%; display:block}
+.collage-title{
+  font-family:'Mitr',sans-serif; font-weight:700; color:var(--blue);
+  font-size:clamp(16px,1.3vw + 1.1vh,26px); flex:0 0 auto; position:relative; z-index:1;
+}
+
+@media (max-width:820px){
+  #tabs{display:none}
+  .slide-body{flex-direction:column; text-align:center; align-items:center; justify-content:center}
+  .weather-meta{flex-wrap:wrap}
+  .weather-split{grid-template-columns:1fr; grid-template-rows:1fr 1fr}
+  .radar-wrap{min-height:220px}
+}
+</style>
+</head>
+<body>
+
+<div id="sky"></div>
+
+<div id="app">
+  <header>
+    <div class="brand">
+      <img src="logo-la-maternelle.png" alt="La Maternelle Early Learning Academy" class="mark">
+      <div class="names">
+        <div class="sub">Houston, Texas</div>
+      </div>
+    </div>
+    <div class="clock-badge">
+      <span class="time" id="hdrTime">--:--</span>
+      <span class="date" id="hdrDate">…</span>
+    </div>
+  </header>
+
+  <main>
+    <div id="tabs"></div>
+    <div id="stage"></div>
+  </main>
+
+  <footer>
+    <div id="progress-track"><div id="progress-fill"></div></div>
+    <div id="dots"></div>
+  </footer>
+</div>
+
+<!-- Panneau "Ajouter une page" — s'ouvre en tapant 5 fois rapidement sur le logo de l'école -->
+<div id="adminModal">
+  <div class="admin-panel">
+    <h2>Ajouter une page</h2>
+    <p class="hint">Écrivez un message et/ou ajoutez une photo. Elle apparaîtra dans la boucle de l'écran.</p>
+    <div class="admin-field">
+      <label>Message (facultatif)</label>
+      <textarea id="admText" placeholder="Ex : Merci à tous pour la fête d'hier !"></textarea>
+    </div>
+    <div class="admin-field">
+      <label>Photo (facultatif)</label>
+      <input type="file" id="admImage" accept="image/*">
+      <img id="admPreview" class="admin-preview" alt="">
+    </div>
+    <div class="admin-actions">
+      <button class="admin-btn secondary" id="admCancel">Annuler</button>
+      <button class="admin-btn primary" id="admSave">Ajouter à l'écran</button>
+    </div>
+
+    <div class="admin-divider"><span>ou</span></div>
+    <button class="admin-btn collage-btn" id="admAddCollage">🖼️ Ajouter une page photo (façon collage)</button>
+    <button class="admin-btn collage-btn" id="admDecorate">🎨 Décorer l'écran affiché en ce moment</button>
+
+    <div class="admin-list" id="admList"></div>
+  </div>
+</div>
+
+<!-- Palette flottante : ajouter un sticker/image sur l'écran actuellement affiché, puis le glisser où on veut -->
+<div id="decoPalette">
+  <div class="deco-pal-row">
+    <select id="decoPageSelect" title="Choisir la page à décorer"></select>
+  </div>
+  <div class="deco-pal-title">Cliquez pour ajouter un décor · glissez-le où vous voulez · molette pour agrandir (Maj+molette pour tourner)</div>
+  <div class="deco-pal-row" id="decoEmojiRow"></div>
+  <div class="deco-pal-row">
+    <label class="deco-pal-upload">📁 Importer une image
+      <input type="file" id="decoImageInput" accept="image/*" hidden>
+    </label>
+    <button class="admin-btn primary" id="decoDone">Terminé</button>
+  </div>
+</div>
+
+<!-- Éditeur de page photo collage : titre, étiquette, 4 cadres glisser-déposer -->
+<div id="collageModal">
+  <div class="admin-panel">
+    <h2>Page photo — collage</h2>
+    <p class="hint">Glissez une photo sur un cadre, ou cliquez dessus pour en choisir une. Jusqu'à 4 photos.</p>
+    <div class="admin-field">
+      <label>Titre</label>
+      <input type="text" id="colTitle" placeholder="Great Memories">
+    </div>
+    <div class="admin-field">
+      <label>Étiquette (ex. nom de la classe)</label>
+      <input type="text" id="colLabel" placeholder="Class 5A">
+    </div>
+    <div class="col-editor-grid" id="colFrames"></div>
+    <label style="display:block; font-weight:800; font-size:13px; color:var(--blue); margin:18px 0 8px">Aperçu — ce qui sera affiché à l'écran</label>
+    <div class="col-preview-frame" id="colPreviewFrame"><div class="col-preview-inner" id="colPreviewInner"></div></div>
+    <div class="admin-actions">
+      <button class="admin-btn primary" id="colClose" style="flex:none; margin:0 auto; padding-left:36px; padding-right:36px">Terminé</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- convertit les emojis Unicode en images : certains appareils (ex. Raspberry Pi) n'ont
+     pas de police d'emoji couleur installée et affichent alors des cases vides à la place
+     des illustrations (anniversaire, sécurité, mot du jour, événements du calendrier…) -->
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+<script>
+/* ================================================================
+   CONFIG — tout ce que le personnel peut modifier est ici.
+   Aucune connaissance en programmation requise : respectez juste
+   les guillemets et les virgules. Les dates d'anniversaire sont au
+   format complet "AAAA-MM-JJ" (avec année, pour calculer l'âge des
+   enfants). Un nom commençant par "Miss" est reconnu comme membre du
+   personnel : pas d'âge affiché pour ces personnes-là.
+   ================================================================ */
+const CONFIG = {
+  SLIDE_SECONDS: 12,          // durée d'affichage de chaque écran
+  RELOAD_HOUR: 3,             // heure (0-23) de rafraîchissement auto nocturne
+
+  WEATHER: {
+    LAT: 29.7604, LON: -95.3698, CITY: "Houston, TX",
+    REFRESH_MINUTES: 20,
+    RADAR_ZOOM: 8,          // zoom de la carte radar (plus petit = vue plus large)
+  },
+
+  // Équipes de Houston suivies sur l'écran "Sports" — données ESPN (gratuit, sans clé)
+  SPORTS_TEAMS: [
+    { key:"texans",  league:"football/nfl",     id:"hou", fr:"Texans (Football américain)", en:"Texans (Football)" },
+    { key:"rockets", league:"basketball/nba",    id:"hou", fr:"Rockets (Basket)",             en:"Rockets (Basketball)" },
+    { key:"astros",  league:"baseball/mlb",      id:"hou", fr:"Astros (Baseball)",            en:"Astros (Baseball)" },
+  ],
+  SPORTS_REFRESH_MINUTES: 60,
+
+  /* --------------------------------------------------------------
+     GOOGLE SHEETS — anniversaires récupérés automatiquement.
+     Marche à suivre (une fois) :
+     1. Créez un Google Sheets avec un onglet "Anniversaires" —
+        colonnes : Nom | Date (AAAA-MM-JJ)
+          Les enfants sont entrés normalement ("Emma L."). Le personnel
+          est entré avec "Miss" devant le prénom ("Miss Laurie") : l'écran
+          reconnaît automatiquement "Miss…" comme personnel et n'affiche
+          pas son âge (l'âge des enfants est calculé depuis leur date).
+     2. Fichier > Partager > Publier sur le web > choisissez l'onglet
+        concerné > format "Valeurs séparées par des virgules (.csv)" > Publier.
+     3. Collez le lien obtenu ci-dessous, entre guillemets.
+     Tant que ce lien est vide, l'écran utilise les données de
+     démonstration (FALLBACK_BIRTHDAYS) plus bas.
+     -------------------------------------------------------------- */
+  DATA_SOURCES: {
+    BIRTHDAYS_CSV_URL: "",
+    REFRESH_MINUTES: 15,
+  },
+
+  // Données de secours, utilisées si le Google Sheets n'est pas encore
+  // connecté ou momentanément injoignable. Format identique aux colonnes ci-dessus.
+  FALLBACK_BIRTHDAYS: [
+    { name: "Emma L.",       date: "2022-01-15" },
+    { name: "Miss Laurie",   date: "1990-03-22" },
+    { name: "Noah P.",       date: "2021-09-04" },
+    { name: "Miss Sébastien",date: "1985-11-08" },
+  ],
+
+  /* --------------------------------------------------------------
+     MESSAGES DE SÉCURITÉ — organisés par thème. Activez les thèmes
+     voulus dans ACTIVE_SAFETY_THEMES ; l'écran affiche un message
+     différent chaque jour, tiré des thèmes actifs. Pour un nouveau
+     thème (ex. "évacuation incendie", "canicule"), donnez-le à l'IA :
+     elle rédige les messages FR/EN et les ajoute ici en quelques secondes.
+     -------------------------------------------------------------- */
+  ACTIVE_SAFETY_THEMES: ["arrivee_depart", "allergies_sante", "urgence", "general"],
+  SAFETY_THEMES: {
+    arrivee_depart: [
+      { fr:"Ayez toujours votre badge ou pièce d'identité pour récupérer votre enfant.", en:"Always bring your badge or ID at pickup time." },
+      { fr:"Roulez au pas dans la zone de dépose-minute.", en:"Drive slowly in the drop-off zone." },
+      { fr:"Merci d'attacher les ceintures avant de démarrer.", en:"Please buckle up before driving off." },
+      { fr:"Ne laissez jamais un enfant seul dans la voiture, même un instant.", en:"Never leave a child alone in the car, even for a moment." },
+    ],
+    allergies_sante: [
+      { fr:"Signalez toute allergie alimentaire à l'accueil.", en:"Please report any food allergies at the front desk." },
+      { fr:"Lavage des mains en arrivant : une habitude qui protège toute la classe.", en:"Handwashing at arrival keeps the whole class healthy." },
+      { fr:"Un enfant fiévreux ou malade doit rester à la maison.", en:"A child with a fever or illness should stay home." },
+      { fr:"Merci de mettre à jour le carnet de vaccination chaque année.", en:"Please keep vaccination records up to date each year." },
+    ],
+    urgence: [
+      { fr:"Exercice incendie mensuel : restez calme, les enseignants vous guident.", en:"Monthly fire drill: stay calm, teachers will guide the group." },
+      { fr:"Point de rassemblement en cas d'urgence : le parking avant.", en:"Emergency meeting point: the front parking lot." },
+      { fr:"Saison des ouragans à Houston : gardez vos coordonnées d'urgence à jour.", en:"Hurricane season in Houston: please keep emergency contacts up to date." },
+    ],
+    general: [
+      { fr:"Merci de garder la porte d'entrée fermée derrière vous.", en:"Please keep the front door closed behind you." },
+      { fr:"Toute personne inconnue doit se présenter à l'accueil.", en:"Anyone we don't recognize should check in at the front desk." },
+      { fr:"Merci de baisser la sonnerie du téléphone dans les couloirs.", en:"Please silence phones while walking through the halls." },
+    ],
+  },
+
+  /* --------------------------------------------------------------
+     MOT DU JOUR — une banque par mois, pour rester dans le thème de
+     la saison (rentrée en septembre, Halloween en octobre, Noël en
+     décembre…). L'écran en tire un différent chaque jour du mois.
+     -------------------------------------------------------------- */
+  WORDS_BY_MONTH: {
+    1: [ // Janvier — hiver, nouvelle année
+      { fr:"Neige",       en:"Snow",       emoji:"❄️" },
+      { fr:"Froid",       en:"Cold",       emoji:"🥶" },
+      { fr:"Bonhomme de neige", en:"Snowman", emoji:"⛄" },
+      { fr:"Chocolat chaud", en:"Hot chocolate", emoji:"☕" },
+      { fr:"Nouvelle année", en:"New year",  emoji:"🎉" },
+      { fr:"Gant",        en:"Glove",      emoji:"🧤" },
+      { fr:"Étoile",      en:"Star",       emoji:"⭐" },
+    ],
+    2: [ // Février — amitié, carnaval
+      { fr:"Cœur",        en:"Heart",      emoji:"❤️" },
+      { fr:"Amitié",      en:"Friendship", emoji:"🤝" },
+      { fr:"Carnaval",    en:"Carnival",   emoji:"🎭" },
+      { fr:"Câlin",       en:"Hug",        emoji:"🤗" },
+      { fr:"Chocolat",    en:"Chocolate",  emoji:"🍫" },
+      { fr:"Papillon",    en:"Butterfly",  emoji:"🦋" },
+    ],
+    3: [ // Mars — le printemps arrive
+      { fr:"Fleur",       en:"Flower",     emoji:"🌸" },
+      { fr:"Pluie",       en:"Rain",       emoji:"🌧️" },
+      { fr:"Parapluie",   en:"Umbrella",   emoji:"☂️" },
+      { fr:"Graine",      en:"Seed",       emoji:"🌱" },
+      { fr:"Vent",        en:"Wind",       emoji:"💨" },
+      { fr:"Oiseau",      en:"Bird",       emoji:"🐦" },
+    ],
+    4: [ // Avril — printemps, Pâques
+      { fr:"Œuf",         en:"Egg",        emoji:"🥚" },
+      { fr:"Lapin",       en:"Rabbit",     emoji:"🐰" },
+      { fr:"Poussin",     en:"Chick",      emoji:"🐥" },
+      { fr:"Panier",      en:"Basket",     emoji:"🧺" },
+      { fr:"Herbe",       en:"Grass",      emoji:"🌿" },
+      { fr:"Arc-en-ciel", en:"Rainbow",    emoji:"🌈" },
+    ],
+    5: [ // Mai — nature, fête des mères
+      { fr:"Maman",       en:"Mom",        emoji:"💐" },
+      { fr:"Abeille",     en:"Bee",        emoji:"🐝" },
+      { fr:"Jardin",      en:"Garden",     emoji:"🌷" },
+      { fr:"Coccinelle",  en:"Ladybug",    emoji:"🐞" },
+      { fr:"Soleil",      en:"Sun",        emoji:"☀️" },
+      { fr:"Cadeau",      en:"Gift",       emoji:"🎁" },
+    ],
+    6: [ // Juin — été, fin d'année scolaire
+      { fr:"Été",         en:"Summer",     emoji:"🌞" },
+      { fr:"Plage",       en:"Beach",      emoji:"🏖️" },
+      { fr:"Piscine",     en:"Pool",       emoji:"🏊" },
+      { fr:"Vacances",    en:"Vacation",   emoji:"🧳" },
+      { fr:"Glace",       en:"Ice cream",  emoji:"🍦" },
+      { fr:"Ami",         en:"Friend",     emoji:"👫" },
+    ],
+    7: [ // Juillet — été
+      { fr:"Drapeau",     en:"Flag",       emoji:"🏁" },
+      { fr:"Feu d'artifice", en:"Fireworks", emoji:"🎆" },
+      { fr:"Chaud",       en:"Hot",        emoji:"🔥" },
+      { fr:"Pastèque",    en:"Watermelon", emoji:"🍉" },
+      { fr:"Sable",       en:"Sand",       emoji:"🏝️" },
+      { fr:"Coquillage",  en:"Seashell",   emoji:"🐚" },
+    ],
+    8: [ // Août — préparer la rentrée
+      { fr:"Valise",      en:"Suitcase",   emoji:"🧳" },
+      { fr:"Cartable",    en:"Backpack",   emoji:"🎒" },
+      { fr:"Crayon",      en:"Crayon",     emoji:"🖍️" },
+      { fr:"Livre",       en:"Book",       emoji:"📚" },
+      { fr:"Rentrée",     en:"Back to school", emoji:"🏫" },
+    ],
+    9: [ // Septembre — rentrée des classes
+      { fr:"Bonjour",     en:"Hello",      emoji:"👋" },
+      { fr:"Ami",         en:"Friend",     emoji:"🤝" },
+      { fr:"Maîtresse",   en:"Teacher",    emoji:"🍎" },
+      { fr:"Cahier",      en:"Notebook",   emoji:"📓" },
+      { fr:"Partager",    en:"To share",   emoji:"🤲" },
+      { fr:"Ciseaux",     en:"Scissors",   emoji:"✂️" },
+    ],
+    10: [ // Octobre — automne, Halloween
+      { fr:"Citrouille",  en:"Pumpkin",    emoji:"🎃" },
+      { fr:"Feuille",     en:"Leaf",       emoji:"🍁" },
+      { fr:"Sorcière",    en:"Witch",      emoji:"🧙" },
+      { fr:"Bonbon",      en:"Candy",      emoji:"🍬" },
+      { fr:"Araignée",    en:"Spider",     emoji:"🕷️" },
+      { fr:"Fantôme",     en:"Ghost",      emoji:"👻" },
+    ],
+    11: [ // Novembre — automne, gratitude
+      { fr:"Merci",       en:"Thank you",  emoji:"🙏" },
+      { fr:"Famille",     en:"Family",     emoji:"👨‍👩‍👧‍👦" },
+      { fr:"Marron",      en:"Chestnut",   emoji:"🌰" },
+      { fr:"Soupe",       en:"Soup",       emoji:"🍲" },
+      { fr:"Écharpe",     en:"Scarf",      emoji:"🧣" },
+      { fr:"Gentil",      en:"Kind",       emoji:"💛" },
+    ],
+    12: [ // Décembre — hiver, Noël
+      { fr:"Noël",        en:"Christmas",  emoji:"🎄" },
+      { fr:"Cadeau",      en:"Gift",       emoji:"🎁" },
+      { fr:"Neige",       en:"Snow",       emoji:"❄️" },
+      { fr:"Chanter",     en:"To sing",    emoji:"🎵" },
+      { fr:"Lumière",     en:"Light",      emoji:"✨" },
+      { fr:"Joyeux",      en:"Joyful",     emoji:"😊" },
+    ],
+  },
+
+  /* --------------------------------------------------------------
+     CALENDRIER SCOLAIRE — rappel automatique avant chaque date
+     importante (fermetures, journées spéciales…). Un écran apparaît
+     tout seul dans la boucle dès que la date approche, et reste
+     affiché tant que l'événement dure. Pour ajouter une date, copiez
+     une ligne et changez start/end (AAAA-MM-JJ) et le texte.
+     type sert juste à l'étiquette affichée en haut de l'écran.
+     -------------------------------------------------------------- */
+  CALENDAR_REMINDER_DAYS: 5,   // nombre de jours avant l'événement où le rappel commence
+  CALENDAR_MAX_SLIDES: 2,      // nombre max d'écrans de rappel affichés en même temps
+
+  SCHOOL_CALENDAR: [
+    { start:"2026-08-03", end:"2026-08-07", type:"closed",    emoji:"🏖️", fr:"École fermée (fin d'été)", en:"School Closed (end of summer)" },
+    { start:"2026-08-10",                   type:"special",   emoji:"🎒", fr:"Rentrée des classes", en:"Back to School" },
+    { start:"2026-09-07",                   type:"closed",    emoji:"🛠️", fr:"Fête du Travail — École fermée", en:"Labor Day — School Closed" },
+    { start:"2026-10-12",                   type:"closed",    emoji:"🚢", fr:"Columbus Day — École fermée · Formation du personnel", en:"Columbus Day — School Closed · Staff Training" },
+    { start:"2026-10-30",                   type:"special",   emoji:"🎃", fr:"Fête d'Halloween", en:"Halloween Party" },
+    { start:"2026-11-23",                   type:"special",   emoji:"🌙", fr:"Journée pyjama", en:"Pajama Day" },
+    { start:"2026-11-23", end:"2026-11-25", type:"relaxed",   emoji:"🧸", fr:"Programme allégé", en:"Relaxed Education" },
+    { start:"2026-11-25",                   type:"dismissal", emoji:"🕧", fr:"Sortie anticipée — 12h30", en:"Early Dismissal — 12:30pm" },
+    { start:"2026-11-26", end:"2026-11-27", type:"closed",    emoji:"🦃", fr:"Vacances de Thanksgiving — École fermée", en:"Thanksgiving Break — School Closed" },
+    { start:"2026-11-30", end:"2026-12-11", type:"conference",emoji:"🤝", fr:"Semaine des réunions parents-professeurs", en:"Parent-Teacher Conferences Week" },
+    { start:"2026-12-18",                   type:"special",   emoji:"❄️", fr:"Fête d'hiver — Sortie anticipée 12h30", en:"Winter Party — Early Dismissal 12:30pm" },
+    { start:"2026-12-21", end:"2026-12-23", type:"relaxed",   emoji:"🎄", fr:"Programme allégé", en:"Relaxed Education" },
+    { start:"2026-12-24",                   type:"dismissal", emoji:"🕧", fr:"Sortie anticipée — 12h30", en:"Early Dismissal — 12:30pm" },
+    { start:"2026-12-25",                   type:"closed",    emoji:"🎅", fr:"Noël — École fermée", en:"Christmas — School Closed" },
+    { start:"2026-12-28", end:"2026-12-30", type:"relaxed",   emoji:"🎄", fr:"Programme allégé", en:"Relaxed Education" },
+    { start:"2026-12-31",                   type:"dismissal", emoji:"🕧", fr:"Sortie anticipée — 12h30", en:"Early Dismissal — 12:30pm" },
+    { start:"2027-01-01",                   type:"closed",    emoji:"🎆", fr:"Jour de l'An — École fermée", en:"New Year's Day — School Closed" },
+    { start:"2027-01-05",                   type:"special",   emoji:"👑", fr:"Galette des rois", en:"Galette des Rois" },
+    { start:"2027-01-18",                   type:"closed",    emoji:"🕊️", fr:"Martin Luther King Jr. Day — École fermée", en:"Martin Luther King Jr. Day — School Closed" },
+    { start:"2027-02-09",                   type:"special",   emoji:"🎭", fr:"Défilé de Mardi Gras", en:"Mardi Gras Parade" },
+    { start:"2027-02-15",                   type:"closed",    emoji:"🇺🇸", fr:"President's Day — École fermée", en:"President's Day — School Closed" },
+    { start:"2027-02-26",                   type:"special",   emoji:"🤠", fr:"Go Texan Day", en:"Go Texan Day" },
+    { start:"2027-03-08", end:"2027-03-12", type:"relaxed",   emoji:"🌷", fr:"Programme allégé", en:"Relaxed Education" },
+    { start:"2027-03-25",                   type:"special",   emoji:"🇫🇷", fr:"Fête de la Francophonie", en:"Francophonie Event" },
+    { start:"2027-03-26",                   type:"closed",    emoji:"✝️", fr:"Vendredi saint — École fermée", en:"Good Friday — School Closed" },
+    { start:"2027-04-05",                   type:"special",   emoji:"🐣", fr:"Chasse aux œufs de Pâques", en:"Easter Egg Hunt" },
+    { start:"2027-04-26", end:"2027-04-30", type:"conference",emoji:"🤝", fr:"Semaine des réunions parents-professeurs", en:"Parent-Teacher Conferences Week" },
+    { start:"2027-05-03", end:"2027-05-07", type:"conference",emoji:"🤝", fr:"Semaine des réunions parents-professeurs", en:"Parent-Teacher Conferences Week" },
+    { start:"2027-05-28",                   type:"special",   emoji:"🎉", fr:"Fête de fin d'année — Sortie anticipée 12h30", en:"End of Year Party — Early Dismissal 12:30pm" },
+    { start:"2027-05-31",                   type:"closed",    emoji:"🎖️", fr:"Memorial Day — École fermée", en:"Memorial Day — School Closed" },
+    { start:"2027-06-01",                   type:"camp",      emoji:"🏕️", fr:"Premier jour du camp d'été", en:"First Day of Summer Camp" },
+    { start:"2027-07-05",                   type:"closed",    emoji:"🎆", fr:"Fête nationale (4 juillet) — École fermée", en:"Independence Day (observed) — School Closed" },
+  ],
+
+  // Annonces libres (facultatif) — laissez [] pour n'en afficher aucune
+  ANNOUNCEMENTS: [
+    // { fr:"Portes ouvertes le 12 septembre !", en:"Open house on September 12th!", emoji:"🎉" },
+  ],
+};
+
+/* ================================================================
+   MOTEUR — pas besoin de modifier ce qui suit.
+   ================================================================ */
+const $ = s => document.querySelector(s);
+// remplace les emojis Unicode par des images (svg) dans l'élément donné : évite les cases
+// vides sur les appareils sans police d'emoji couleur (ex. Raspberry Pi / Raspbian)
+function emojify(el){
+  if(window.twemoji && el) twemoji.parse(el, { folder:'svg', ext:'.svg' });
+}
+const pad = n => String(n).padStart(2,'0');
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+const dayOfYear = d => Math.floor((d - new Date(d.getFullYear(),0,0)) / 86400000);
+const daysUntil = dateStr => {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((new Date(dateStr + 'T00:00:00') - today) / 86400000);
+};
+// stockage local protégé : certains navigateurs/modes (aperçu, navigation privée) le bloquent
+const storageGet = key => { try{ return localStorage.getItem(key); }catch(err){ return null; } };
+const storageSet = (key, val) => { try{ localStorage.setItem(key, val); }catch(err){ /* pas grave, on continue sans persister */ } };
+
+function drawSky(){
+  const sky = $('#sky');
+  // une arche douce en filigrane, coin bas-droit — clin d'œil "porte d'apprentissage"
+  // discret, pour ancrer l'identité maternelle sans surcharger le fond
+  let html = `
+    <svg viewBox="0 0 400 400" style="right:-8%; bottom:-12%; width:46vw; height:46vw; max-width:520px; max-height:520px; opacity:.5">
+      <path d="M40 400 V180 a160 160 0 0 1 320 0 V400" fill="none" stroke="var(--lightblue)" stroke-width="26" opacity=".35"/>
+      <path d="M84 400 V180 a116 116 0 0 1 232 0 V400" fill="none" stroke="var(--yellow)" stroke-width="22" opacity=".4"/>
+      <path d="M124 400 V180 a76 76 0 0 1 152 0 V400" fill="none" stroke="var(--pink)" stroke-width="18" opacity=".4"/>
+    </svg>
+    <svg viewBox="0 0 300 300" style="left:-10%; top:-10%; width:30vw; height:30vw; max-width:340px; max-height:340px; opacity:.4">
+      <path d="M20 260 V120 a110 110 0 0 1 220 0 V260" fill="none" stroke="var(--lightblue)" stroke-width="20" opacity=".3"/>
+    </svg>`;
+  const dots = [
+    [6,30,'var(--pink)'],[92,22,'var(--yellow)'],[4,85,'var(--lightblue)'],
+    [95,78,'var(--pink)'],[50,6,'var(--yellow)'],[30,92,'var(--lightblue)'],
+  ];
+  dots.forEach(([x,y,c])=>{
+    html += `<div class="dot" style="left:${x}%;top:${y}%;width:10px;height:10px;background:${c}"></div>`;
+  });
+  sky.innerHTML = html;
+}
+
+// icônes maison cohérentes (trait marine, un accent couleur) pour les pastilles de catégorie
+function catIcon(type){
+  const S = 'stroke="var(--cat,var(--blue))" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"';
+  const icons = {
+    clock: `<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="33" ${S}/><path d="M50 32v20l13 9" ${S}/><path d="M40 10h20" ${S}/></svg>`,
+    weather: `<svg viewBox="0 0 100 100"><circle cx="37" cy="33" r="13" fill="var(--yellow)"/><path d="M20 72a17 17 0 0 1 4-33 22 22 0 0 1 43 4 18 18 0 0 1-2 29z" ${S}/></svg>`,
+    cake: `<svg viewBox="0 0 100 100"><path d="M50 20v8" ${S}/><circle cx="50" cy="13" r="4" fill="var(--pink)"/><rect x="22" y="46" width="56" height="32" rx="6" ${S}/><path d="M22 61c8-6 12 6 20 0s12 6 20 0 12 6 16 0" ${S}/><path d="M31 46v-7a6 6 0 0 1 6-6M69 46v-7a6 6 0 0 0-6-6" ${S}/></svg>`,
+    shield: `<svg viewBox="0 0 100 100"><path d="M50 12l29 11v21c0 22-13 34-29 42-16-8-29-20-29-42V23z" ${S}/><path d="M37 50l9 9 17-18" ${S}/></svg>`,
+    word: `<svg viewBox="0 0 100 100"><path d="M18 26h64a6 6 0 0 1 6 6v26a6 6 0 0 1-6 6H46l-14 14V64H18a6 6 0 0 1-6-6V32a6 6 0 0 1 6-6z" ${S}/><circle cx="34" cy="45" r="3" fill="var(--pink)"/><circle cx="50" cy="45" r="3" fill="var(--pink)"/><circle cx="66" cy="45" r="3" fill="var(--pink)"/></svg>`,
+    calendar: `<svg viewBox="0 0 100 100"><rect x="15" y="22" width="70" height="60" rx="8" ${S}/><path d="M15 40h70" ${S}/><path d="M32 13v14M68 13v14" ${S}/><circle cx="34" cy="58" r="4.5" fill="var(--pink)"/><circle cx="50" cy="58" r="4.5" fill="var(--pink)" opacity=".45"/><circle cx="66" cy="58" r="4.5" fill="var(--pink)" opacity=".45"/></svg>`,
+    announce: `<svg viewBox="0 0 100 100"><path d="M14 38v22l18 4v9a6 6 0 0 0 12 0v-6l40 9V25z" ${S}/><path d="M40 73a10 10 0 0 0 10 10" ${S}/></svg>`,
+    photo: `<svg viewBox="0 0 100 100"><rect x="13" y="25" width="74" height="55" rx="8" ${S}/><circle cx="35" cy="45" r="8" ${S}/><path d="M13 68l19-15 17 12 13-9 25 17" ${S}/></svg>`,
+    sports: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" ${S}/><path d="M50 12v76M12 50h76" ${S}/><path d="M22 24c10 10 10 42 0 52M78 24c-10 10-10 42 0 52" ${S}/></svg>`,
+  };
+  return icons[type] || icons.calendar;
+}
+
+// décor "scrapbook" discret (fleur + ruban) rejoué sur chaque carte, teinté selon la catégorie
+function cardDecorHTML(){
+  return `
+    <svg class="card-flower" viewBox="0 0 100 100"><g fill="var(--cat,var(--pink))">
+      <ellipse cx="50" cy="20" rx="16" ry="26"/><ellipse cx="50" cy="80" rx="16" ry="26"/>
+      <ellipse cx="20" cy="50" rx="26" ry="16"/><ellipse cx="80" cy="50" rx="26" ry="16"/>
+    </g></svg>
+    <svg class="card-squiggle" viewBox="0 0 160 60"><path d="M2 30 Q30 5 55 30 T110 30 T158 20" fill="none" stroke="var(--cat,var(--blue))" stroke-width="5" stroke-linecap="round"/></svg>`;
+}
+// en-tête standard de chaque écran : étiquette washi-tape (icône + libellé EN/FR) + décor de fond
+function eyebrowHTML(iconType, enLabel, frLabel){
+  return `
+    ${cardDecorHTML()}
+    <div class="eyebrow">
+      <div class="tape-label">
+        <div class="tape-icon">${catIcon(iconType)}</div>
+        <div class="tape-text"><span class="fr">${enLabel}</span><span class="en">${frLabel}</span></div>
+      </div>
+    </div>`;
+}
+// enveloppe tout le gabarit dans le mat festonné (.card-mat) teinté par catégorie :
+// --cat / --cat-mat / --cat-tint irriguent le fond du mat, l'étiquette, l'icône, les pastilles…
+function catWrap(catClass, inner){
+  return `<div class="${catClass} card-mat">${inner}</div>`;
+}
+
+function weatherIconSVG(code){
+  const sun = `<circle cx="60" cy="60" r="26" fill="var(--yellow)"/>`+
+    Array.from({length:8}).map((_,i)=>{
+      const a=i/8*Math.PI*2;
+      const x1=60+Math.cos(a)*34, y1=60+Math.sin(a)*34;
+      const x2=60+Math.cos(a)*46, y2=60+Math.sin(a)*46;
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--yellow)" stroke-width="7" stroke-linecap="round"/>`;
+    }).join('');
+  const cloud = `<path d="M28 78 a18 18 0 0 1 0-36 a24 24 0 0 1 46-7 a20 20 0 0 1 4 39 z" fill="#fff" stroke="var(--lightblue)" stroke-width="3"/>`;
+  const sunCloud = `<circle cx="42" cy="40" r="18" fill="var(--yellow)"/><path d="M38 88 a18 18 0 0 1 0-36 a24 24 0 0 1 46-6 a20 20 0 0 1 3 39 z" fill="#fff" stroke="var(--lightblue)" stroke-width="3"/>`;
+  const rainDrops = `<line x1="45" y1="92" x2="40" y2="106" stroke="var(--lightblue)" stroke-width="6" stroke-linecap="round"/>
+    <line x1="65" y1="92" x2="60" y2="106" stroke="var(--lightblue)" stroke-width="6" stroke-linecap="round"/>
+    <line x1="85" y1="92" x2="80" y2="106" stroke="var(--lightblue)" stroke-width="6" stroke-linecap="round"/>`;
+  const rainCloud = `<path d="M28 74 a18 18 0 0 1 0-36 a24 24 0 0 1 46-6 a20 20 0 0 1 3 39 z" fill="#fff" stroke="var(--lightblue)" stroke-width="3"/>` + rainDrops;
+  const bolt = `<polygon points="62,86 50,86 58,68 46,68 66,44 60,64 72,64" fill="var(--pink)"/>`;
+  const stormCloud = `<path d="M28 68 a18 18 0 0 1 0-36 a24 24 0 0 1 46-5 a20 20 0 0 1 3 38 z" fill="#fff" stroke="var(--blue)" stroke-width="3"/>` + bolt;
+  const fogLines = [88,100,112].map(y=>`<line x1="22" y1="${y}" x2="98" y2="${y}" stroke="var(--lightblue)" stroke-width="6" stroke-linecap="round" opacity=".7"/>`).join('');
+  const fog = `<path d="M28 70 a18 18 0 0 1 0-30 a22 22 0 0 1 42-5 a18 18 0 0 1 3 35 z" fill="#fff" stroke="var(--lightblue)" stroke-width="3"/>` + fogLines;
+  const flake = `<g stroke="var(--lightblue)" stroke-width="5" stroke-linecap="round">
+    <line x1="60" y1="70" x2="60" y2="110"/><line x1="40" y1="90" x2="80" y2="90"/>
+    <line x1="46" y1="76" x2="74" y2="104"/><line x1="74" y1="76" x2="46" y2="104"/></g>`;
+  const snowCloud = `<path d="M28 62 a18 18 0 0 1 0-30 a22 22 0 0 1 42-5 a18 18 0 0 1 3 35 z" fill="#fff" stroke="var(--lightblue)" stroke-width="3"/>` + flake;
+
+  let body;
+  if(code===0) body = sun;
+  else if([1,2].includes(code)) body = sunCloud;
+  else if(code===3) body = cloud;
+  else if([45,48].includes(code)) body = fog;
+  else if([51,53,55,56,57,61,63,66,80].includes(code)) body = rainCloud;
+  else if([65,67,81,82].includes(code)) body = rainCloud;
+  else if([71,73,75,77,85,86].includes(code)) body = snowCloud;
+  else if([95,96,99].includes(code)) body = stormCloud;
+  else body = sunCloud;
+
+  return `<svg viewBox="0 0 120 120" width="100%" height="100%">${body}</svg>`;
+}
+
+const WMO_LABEL = {
+  0:{fr:"Ensoleillé",en:"Clear sky"}, 1:{fr:"Plutôt dégagé",en:"Mainly clear"},
+  2:{fr:"Partiellement nuageux",en:"Partly cloudy"}, 3:{fr:"Nuageux",en:"Overcast"},
+  45:{fr:"Brouillard",en:"Fog"}, 48:{fr:"Brouillard givrant",en:"Freezing fog"},
+  51:{fr:"Bruine légère",en:"Light drizzle"}, 53:{fr:"Bruine",en:"Drizzle"}, 55:{fr:"Forte bruine",en:"Dense drizzle"},
+  56:{fr:"Bruine verglaçante",en:"Freezing drizzle"}, 57:{fr:"Forte bruine verglaçante",en:"Dense freezing drizzle"},
+  61:{fr:"Pluie légère",en:"Light rain"}, 63:{fr:"Pluie",en:"Rain"}, 65:{fr:"Forte pluie",en:"Heavy rain"},
+  66:{fr:"Pluie verglaçante",en:"Freezing rain"}, 67:{fr:"Forte pluie verglaçante",en:"Heavy freezing rain"},
+  71:{fr:"Neige légère",en:"Light snow"}, 73:{fr:"Neige",en:"Snow"}, 75:{fr:"Forte neige",en:"Heavy snow"},
+  77:{fr:"Grains de neige",en:"Snow grains"},
+  80:{fr:"Averses légères",en:"Light showers"}, 81:{fr:"Averses",en:"Showers"}, 82:{fr:"Fortes averses",en:"Violent showers"},
+  85:{fr:"Averses de neige",en:"Snow showers"}, 86:{fr:"Fortes averses de neige",en:"Heavy snow showers"},
+  95:{fr:"Orage",en:"Thunderstorm"}, 96:{fr:"Orage & grêle",en:"Thunderstorm w/ hail"}, 99:{fr:"Fort orage & grêle",en:"Severe thunderstorm"},
+};
+
+let weatherState = { loading:true, ok:false, temp:null, code:0, humidity:null, wind:null, forecast:[] };
+
+async function fetchWeather(){
+  try{
+    const { LAT, LON } = CONFIG.WEATHER;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&forecast_days=4`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const daily = data.daily || {};
+    const days = daily.time || [];
+    const forecast = [];
+    for(let i = 1; i < Math.min(4, days.length); i++){
+      const d = new Date(days[i] + 'T00:00:00');
+      forecast.push({
+        dayName: new Intl.DateTimeFormat('en-US', { weekday:'short' }).format(d),
+        code: daily.weather_code[i],
+        tmax: Math.round(daily.temperature_2m_max[i]),
+        tmin: Math.round(daily.temperature_2m_min[i]),
+      });
+    }
+    weatherState = {
+      loading:false, ok:true,
+      temp: Math.round(data.current.temperature_2m),
+      code: data.current.weather_code,
+      humidity: Math.round(data.current.relative_humidity_2m),
+      wind: Math.round(data.current.wind_speed_10m),
+      forecast,
+    };
+  }catch(err){
+    weatherState = { loading:false, ok:false, temp:null, code:0, humidity:null, wind:null, forecast:[] };
+  }
+  renderIfActive('weather');
+}
+
+/* ---------- scores des équipes de Houston (ESPN, gratuit, sans clé) ---------- */
+// pour chaque équipe : le dernier match terminé (s'il y en a un cette saison) et le
+// prochain match à venir — s'adapte tout seul en intersaison (ex. pas de "dernier match"
+// pour les Rockets/Texans tant que leur saison n'a pas commencé)
+let sportsState = {}; // { [teamKey]: { loading, ok, teamName, logo, record, standing, last, next } }
+CONFIG.SPORTS_TEAMS.forEach(t => { sportsState[t.key] = { loading:true, ok:false }; });
+
+async function fetchSportsTeam(team){
+  try{
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${team.league}/teams/${team.id}/schedule`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const events = [...(data.events || [])].sort((a,b) => new Date(a.date) - new Date(b.date));
+    const now = new Date();
+    const past = events.filter(ev => new Date(ev.date) <= now);
+    const future = events.filter(ev => new Date(ev.date) > now);
+
+    const toResult = ev => {
+      const comp = ev.competitions[0];
+      const me = comp.competitors.find(c => c.team.id === data.team.id);
+      const opp = comp.competitors.find(c => c.team.id !== data.team.id);
+      if(!me || !opp) return null;
+      return {
+        date: ev.date,
+        opponent: opp.team.shortDisplayName || opp.team.abbreviation,
+        homeAway: me.homeAway,
+        myScore: me.score && me.score.displayValue,
+        oppScore: opp.score && opp.score.displayValue,
+        completed: comp.status.type.completed,
+        winner: me.winner === true,
+      };
+    };
+
+    const lastEv = [...past].reverse().find(ev => ev.competitions[0].status.type.completed);
+    const nextEv = future[0];
+
+    sportsState[team.key] = {
+      loading:false, ok:true,
+      teamName: data.team.displayName,
+      logo: data.team.logo,
+      record: data.team.recordSummary,
+      standing: data.team.standingSummary,
+      last: lastEv ? toResult(lastEv) : null,
+      next: nextEv ? toResult(nextEv) : null,
+    };
+  }catch(err){
+    sportsState[team.key] = { loading:false, ok:false };
+  }
+}
+
+async function fetchAllSports(){
+  await Promise.all(CONFIG.SPORTS_TEAMS.map(fetchSportsTeam));
+  renderIfActive('sports');
+}
+
+/* ---------- carte radar de précipitations (RainViewer, gratuit, sans clé) ---------- */
+let radarMap = null, radarLayers = [], radarFrameIdx = 0, radarAnimId = null;
+
+function destroyRadarMap(){
+  if(radarAnimId){ clearInterval(radarAnimId); radarAnimId = null; }
+  if(radarMap){ radarMap.remove(); radarMap = null; }
+  radarLayers = [];
+}
+
+function initRadarMap(){
+  if(radarMap || typeof L === 'undefined') return;
+  const container = document.getElementById('radarMap');
+  if(!container) return;
+  const { LAT, LON, RADAR_ZOOM } = CONFIG.WEATHER;
+  radarMap = L.map(container, {
+    zoomControl:false, attributionControl:false, dragging:false,
+    scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false,
+    keyboard:false, touchZoom:false, tap:false,
+  }).setView([LAT, LON], RADAR_ZOOM);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    subdomains:'abc', maxZoom:12,
+  }).addTo(radarMap);
+
+  L.marker([LAT, LON], {
+    icon: L.divIcon({ className:'', html:'<div class="radar-pin"></div>', iconSize:[18,18], iconAnchor:[9,16] }),
+  }).addTo(radarMap);
+
+  setTimeout(() => {
+    if(!radarMap) return;
+    radarMap.invalidateSize();
+    container.closest('.radar-wrap').classList.add('ready'); // seulement une fois bien dimensionné
+  }, 300);
+  loadRadarFrames();
+}
+
+async function loadRadarFrames(){
+  if(!radarMap) return;
+  try{
+    const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+    const data = await res.json();
+    const radarData = data.radar || {};
+    const frames = [...(radarData.past || []), ...(radarData.nowcast || [])].slice(-8);
+    radarLayers.forEach(l => radarMap.removeLayer(l));
+    radarLayers = frames.map(f => L.tileLayer(
+      `https://tilecache.rainviewer.com${f.path}/256/{z}/{x}/{y}/2/1_1.png`,
+      // RainViewer ne fournit pas de tuiles au-delà du zoom 7 : au-delà, Leaflet agrandit
+      // automatiquement les tuiles du zoom 7 au lieu d'afficher "Zoom Level Not Supported"
+      { opacity:0, zIndex:10, maxNativeZoom:7 }
+    ).addTo(radarMap));
+    startRadarAnim();
+  }catch(err){
+    // pas de radar disponible : la carte de fond reste visible, sans animation
+  }
+}
+
+function startRadarAnim(){
+  if(radarAnimId) clearInterval(radarAnimId);
+  if(!radarLayers.length) return;
+  radarFrameIdx = 0;
+  radarLayers.forEach((l,i) => l.setOpacity(i === 0 ? 0.75 : 0));
+  radarAnimId = setInterval(() => {
+    radarLayers[radarFrameIdx].setOpacity(0);
+    radarFrameIdx = (radarFrameIdx + 1) % radarLayers.length;
+    radarLayers[radarFrameIdx].setOpacity(0.75);
+  }, 600);
+}
+
+/* ---------- données dynamiques (Google Sheets) ---------- */
+function parseCSV(text){
+  const rows = []; let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){ if(text[i+1] === '"'){ field += '"'; i++; } else inQuotes = false; }
+      else field += c;
+    }else{
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n' || c === '\r'){
+        if(c === '\r' && text[i+1] === '\n') i++;
+        row.push(field); field='';
+        if(row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      }else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+function isStaff(name){
+  return (name||'').trim().toLowerCase().startsWith('miss');
+}
+function ageFromDate(dateStr){
+  return new Date().getFullYear() - parseInt(dateStr.slice(0,4), 10);
+}
+
+let birthdaysData = CONFIG.FALLBACK_BIRTHDAYS;
+
+async function fetchBirthdays(){
+  const url = CONFIG.DATA_SOURCES.BIRTHDAYS_CSV_URL;
+  if(!url) return;
+  try{
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'cachebust=' + Date.now());
+    const rows = parseCSV(await res.text()).filter(r => r.length && (r[0]||'').trim());
+    const list = rows.slice(1).map(r => ({
+      name: (r[0]||'').trim(),
+      date: (r[1]||'').trim(),
+    })).filter(b => b.name && /^\d{4}-\d{2}-\d{2}$/.test(b.date));
+    if(list.length){ birthdaysData = list; storageSet('ema_birthdays', JSON.stringify(list)); }
+  }catch(err){
+    const cached = storageGet('ema_birthdays');
+    if(cached) birthdaysData = JSON.parse(cached);
+  }
+}
+
+async function refreshBirthdays(){
+  const before = todaysBirthdays().length;
+  await fetchBirthdays();
+  if(todaysBirthdays().length !== before){
+    rebuildAndRestart(); // l'écran anniversaire doit apparaître/disparaître
+  }else{
+    renderIfActive('birthday');
+  }
+}
+
+/* ---------- construction des diapositives ---------- */
+function slideDateTime(){
+  const now = new Date();
+  const fr = cap(new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(now));
+  const en = new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).format(now);
+  const time = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(now);
+  return catWrap('cat-blue', `
+    ${eyebrowHTML('clock', 'Today', "Aujourd'hui")}
+    <div class="slide-body" style="flex-direction:column; align-items:center; justify-content:center; text-align:center">
+      <div class="big-clock">${time}</div>
+      <div class="date-line">${en}<span class="en">${fr}</span></div>
+    </div>`);
+}
+
+function weatherLeftHTML(){
+  const { CITY } = CONFIG.WEATHER;
+  if(weatherState.loading){
+    return `<div class="wrap-fallback">Loading weather…<br>Chargement des données météo…</div>`;
+  }
+  if(!weatherState.ok){
+    return `<div class="wrap-fallback">Weather currently unavailable.<br>Météo indisponible pour le moment.</div>`;
+  }
+  const label = WMO_LABEL[weatherState.code] || {fr:"—",en:"—"};
+  const forecastHTML = (weatherState.forecast || []).map(d => {
+    const dLabel = WMO_LABEL[d.code] || {fr:"—",en:"—"};
+    return `
+    <div class="fc-day" title="${dLabel.en} · ${dLabel.fr}">
+      <div class="fc-name">${d.dayName}</div>
+      <div class="fc-icon">${weatherIconSVG(d.code)}</div>
+      <div class="fc-temps">${d.tmax}° <span class="lo">${d.tmin}°</span></div>
+    </div>`;
+  }).join('');
+  return `
+    <div class="weather-now">
+      <div class="weather-icon">${weatherIconSVG(weatherState.code)}</div>
+      <div>
+        <div class="weather-temp">${weatherState.temp}°F</div>
+        <div class="weather-cond">${label.en} <span class="en">· ${label.fr}</span></div>
+        <div class="weather-city">${CITY}</div>
+        <div class="weather-meta">
+          <div class="item">💧 ${weatherState.humidity}%</div>
+          <div class="item">🌬️ ${weatherState.wind} mph</div>
+        </div>
+      </div>
+    </div>
+    ${forecastHTML ? `<div class="weather-forecast">${forecastHTML}</div>` : ''}`;
+}
+
+function slideWeather(){
+  return catWrap('cat-lightblue', `
+    ${eyebrowHTML('weather', 'Weather & Radar', 'Météo & radar')}
+    <div class="slide-body weather-split">
+      <div class="weather-left" id="weatherLeft">${weatherLeftHTML()}</div>
+      <div class="radar-wrap">
+        <div id="radarMap" class="radar-map"></div>
+        <div class="radar-live"><span class="radar-dot"></span>Live · En direct</div>
+      </div>
+    </div>`);
+}
+
+function todaysBirthdays(){
+  const now = new Date();
+  const key = `${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  return birthdaysData.filter(b => b.date.slice(5) === key); // b.date = "AAAA-MM-JJ"
+}
+
+function slideBirthday(list){
+  const pills = list.map(b => {
+    const staff = isStaff(b.name);
+    const role = staff ? "Staff · Personnel" : "Student · Élève";
+    const age = staff ? '' : ` — ${ageFromDate(b.date)} yrs · ${ageFromDate(b.date)} ans`;
+    return `<div class="birthday-pill">🎈 ${b.name}${age} <span class="role">${role}</span></div>`;
+  }).join('');
+  return catWrap('cat-yellow', `
+    ${eyebrowHTML('cake', 'Birthday', 'Anniversaire')}
+    <div class="slide-body" style="flex-direction:column; align-items:center; justify-content:center; text-align:center">
+      <div class="content-icon">🎂</div>
+      <div class="headline" style="margin-top:20px">Happy Birthday!<span class="en">Joyeux anniversaire !</span></div>
+      <div class="birthday-list">${pills}</div>
+    </div>`);
+}
+
+function activeSafetyMessages(){
+  let all = [];
+  CONFIG.ACTIVE_SAFETY_THEMES.forEach(t => { if(CONFIG.SAFETY_THEMES[t]) all = all.concat(CONFIG.SAFETY_THEMES[t]); });
+  return all.length ? all : [{ fr:"Ajoutez des messages dans SAFETY_THEMES.", en:"Add messages in SAFETY_THEMES." }];
+}
+
+function slideSafety(){
+  const list = activeSafetyMessages();
+  const msg = list[dayOfYear(new Date()) % list.length];
+  return catWrap('cat-green', `
+    ${eyebrowHTML('shield', 'Safety', 'Sécurité')}
+    <div class="slide-body">
+      <div class="content-icon">🛡️</div>
+      <div class="headline">${msg.en}<span class="en">${msg.fr}</span></div>
+    </div>`);
+}
+
+function slideWord(){
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const bank = CONFIG.WORDS_BY_MONTH[month] || CONFIG.WORDS_BY_MONTH[1];
+  const w = bank[dayOfYear(now) % bank.length];
+  return catWrap('cat-pink', `
+    ${eyebrowHTML('word', 'Word of the Day', 'Mot du jour')}
+    <div class="slide-body">
+      <div class="content-icon">${w.emoji}</div>
+      <div class="word-card">
+        <div class="word-fr">${w.en}</div>
+        <div class="word-en">${w.fr}</div>
+        <div class="word-hint">Repeat with me! · Répétez avec moi !</div>
+      </div>
+    </div>`);
+}
+
+const CALENDAR_TYPE_LABELS = {
+  closed:     { fr:"École fermée",  en:"School Closed" },
+  special:    { fr:"Journée spéciale", en:"Special Day" },
+  dismissal:  { fr:"Sortie anticipée", en:"Early Dismissal" },
+  conference: { fr:"Réunions parents-profs", en:"Parent-Teacher Conferences" },
+  relaxed:    { fr:"Programme allégé", en:"Relaxed Education" },
+  camp:       { fr:"Camp d'été", en:"Summer Camp" },
+};
+
+function upcomingCalendarEvents(){
+  const windowDays = CONFIG.CALENDAR_REMINDER_DAYS;
+  return CONFIG.SCHOOL_CALENDAR
+    .map(ev => ({ ...ev, _toStart: daysUntil(ev.start), _toEnd: daysUntil(ev.end || ev.start) }))
+    .filter(ev => (ev._toStart >= 0 && ev._toStart <= windowDays) || (ev._toStart < 0 && ev._toEnd >= 0))
+    .sort((a,b) => a._toStart - b._toStart)
+    .slice(0, CONFIG.CALENDAR_MAX_SLIDES);
+}
+
+function formatEventDate(ev){
+  const start = new Date(ev.start + 'T00:00:00');
+  const end = new Date((ev.end || ev.start) + 'T00:00:00');
+  if(ev.start === (ev.end || ev.start)){
+    return {
+      fr: cap(new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(start)),
+      en: new Intl.DateTimeFormat('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).format(start),
+    };
+  }
+  const monthFrStart = new Intl.DateTimeFormat('fr-FR',{month:'long'}).format(start);
+  const monthEnStart = new Intl.DateTimeFormat('en-US',{month:'long'}).format(start);
+  if(start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()){
+    return {
+      fr: `Du ${start.getDate()} au ${end.getDate()} ${monthFrStart} ${end.getFullYear()}`,
+      en: `${monthEnStart} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`,
+    };
+  }
+  const monthFrEnd = new Intl.DateTimeFormat('fr-FR',{month:'long'}).format(end);
+  const monthEnEnd = new Intl.DateTimeFormat('en-US',{month:'long'}).format(end);
+  return {
+    fr: `Du ${start.getDate()} ${monthFrStart} au ${end.getDate()} ${monthFrEnd} ${end.getFullYear()}`,
+    en: `${monthEnStart} ${start.getDate()} – ${monthEnEnd} ${end.getDate()}, ${end.getFullYear()}`,
+  };
+}
+
+function slideCalendarEvent(ev){
+  let countdown;
+  if(ev._toStart > 1)       countdown = { fr:`Dans ${ev._toStart} jours`, en:`In ${ev._toStart} days` };
+  else if(ev._toStart === 1) countdown = { fr:"Demain", en:"Tomorrow" };
+  else if(ev._toStart === 0) countdown = { fr:"Aujourd'hui", en:"Today" };
+  else                        countdown = { fr:"En cours", en:"Ongoing" };
+  const label = CALENDAR_TYPE_LABELS[ev.type] || { fr:"À noter", en:"Reminder" };
+  const dateFmt = formatEventDate(ev);
+  return catWrap('cat-pink', `
+    ${eyebrowHTML('calendar', label.en, label.fr)}
+    <div class="slide-body">
+      <div class="content-icon">${ev.emoji}</div>
+      <div>
+        <div class="calendar-countdown">${countdown.en} <span class="en">· ${countdown.fr}</span></div>
+        <div class="headline">${ev.en}<span class="en">${ev.fr}</span></div>
+        <div class="calendar-date">${dateFmt.en} <span class="en">· ${dateFmt.fr}</span></div>
+      </div>
+    </div>`);
+}
+
+// une couleur par type d'événement, reprise comme liseré sur chaque ligne de la liste
+const CALENDAR_TYPE_COLOR = {
+  closed:     'var(--pink)',
+  special:    '#E3A600',
+  dismissal:  'var(--lightblue)',
+  conference: 'var(--green)',
+  relaxed:    'var(--blue)',
+  camp:       'var(--green)',
+};
+
+function eventsOnISODate(iso){
+  return CONFIG.SCHOOL_CALENDAR.filter(ev => iso >= ev.start && iso <= (ev.end || ev.start));
+}
+
+// évènements dont une partie au moins tombe dans le mois donné (utile pour ceux à cheval
+// sur deux mois, ex. "30 nov. au 11 déc.")
+function eventsInMonth(year, month){
+  const first = `${year}-${pad(month + 1)}-01`;
+  const last = `${year}-${pad(month + 1)}-${pad(new Date(year, month + 1, 0).getDate())}`;
+  return CONFIG.SCHOOL_CALENDAR
+    .filter(ev => ev.start <= last && (ev.end || ev.start) >= first)
+    .sort((a,b) => a.start.localeCompare(b.start));
+}
+
+// jour(s) d'un évènement à afficher pour CE mois (tronqué si l'évènement déborde sur un
+// autre mois), ex. "7" ou "23–25" ou "30 Nov–2"
+function eventDayLabel(ev, year, month){
+  const first = new Date(year, month, 1), lastNum = new Date(year, month + 1, 0).getDate();
+  const start = new Date(ev.start + 'T00:00:00');
+  const end = new Date((ev.end || ev.start) + 'T00:00:00');
+  const startInMonth = start.getFullYear() === year && start.getMonth() === month;
+  const endInMonth = end.getFullYear() === year && end.getMonth() === month;
+  const d1 = startInMonth ? start.getDate() : 1;
+  const d2 = endInMonth ? end.getDate() : lastNum;
+  return d1 === d2 ? `${d1}` : `${d1}–${d2}`;
+}
+
+// vue d'ensemble du mois en cours : la grille avec l'emoji de chaque évènement posé sur
+// son jour, plus la liste complète des évènements du mois (nom, date) en dessous — se
+// reconstruit chaque jour ("aujourd'hui" mis à jour) et bascule seule au mois suivant
+function slideMonthCalendar(){
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startWeekday = new Date(year, month, 1).getDay(); // 0 = dimanche
+  const monthEn = new Intl.DateTimeFormat('en-US', { month:'long', year:'numeric' }).format(now);
+  const monthFr = cap(new Intl.DateTimeFormat('fr-FR', { month:'long', year:'numeric' }).format(now));
+  const dowLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const todayNum = now.getDate();
+
+  let cells = '';
+  for(let i = 0; i < startWeekday; i++) cells += `<div class="month-cal-day empty"></div>`;
+  for(let d = 1; d <= daysInMonth; d++){
+    const iso = `${year}-${pad(month + 1)}-${pad(d)}`;
+    const evs = eventsOnISODate(iso);
+    const icons = evs.slice(0, 2).map(e => `<span>${e.emoji}</span>`).join('');
+    cells += `<div class="month-cal-day${d === todayNum ? ' today' : ''}">
+      <span class="month-cal-num">${d}</span>
+      ${icons ? `<span class="month-cal-icons">${icons}</span>` : ''}
+    </div>`;
+  }
+
+  const monthEvents = eventsInMonth(year, month);
+  const eventRows = monthEvents.map(ev => {
+    const label = CALENDAR_TYPE_LABELS[ev.type] || { fr:"À noter", en:"Reminder" };
+    return `
+    <div class="month-cal-event" style="--ev-color:${CALENDAR_TYPE_COLOR[ev.type] || 'var(--ink-faint)'}">
+      <span class="month-cal-event-day">${eventDayLabel(ev, year, month)}</span>
+      <span class="month-cal-event-icon">${ev.emoji}</span>
+      <span class="month-cal-event-name">${ev.en} <span class="en">· ${ev.fr}</span></span>
+      <span class="month-cal-event-type">${label.en}</span>
+    </div>`;
+  }).join('');
+
+  return catWrap('cat-blue', `
+    ${eyebrowHTML('calendar', monthEn, monthFr)}
+    <div class="slide-body" style="flex-direction:column; align-items:stretch; justify-content:stretch">
+      <div class="month-cal">
+        <div class="month-cal-head">${dowLabels.map(l => `<span>${l}</span>`).join('')}</div>
+        <div class="month-cal-grid">${cells}</div>
+        ${eventRows ? `<div class="month-cal-events">${eventRows}</div>` : ''}
+      </div>
+    </div>`);
+}
+
+function slideAnnouncement(a){
+  return catWrap('cat-blue', `
+    ${eyebrowHTML('announce', 'Announcement', 'À noter')}
+    <div class="slide-body">
+      <div class="content-icon">${a.emoji || '📌'}</div>
+      <div class="headline">${a.en}<span class="en">${a.fr}</span></div>
+    </div>`);
+}
+
+function shortGameDate(iso){
+  const d = new Date(iso);
+  return {
+    en: new Intl.DateTimeFormat('en-US', { month:'short', day:'numeric' }).format(d),
+    fr: new Intl.DateTimeFormat('fr-FR', { day:'numeric', month:'short' }).format(d),
+  };
+}
+
+function sportsTeamCardHTML(team){
+  const s = sportsState[team.key] || { loading:true };
+  if(s.loading){
+    return `<div class="sports-team"><div class="sports-name">${team.en}<span class="en">${team.fr}</span></div>
+      <div class="sports-status">Loading… <span class="en">Chargement…</span></div></div>`;
+  }
+  if(!s.ok){
+    return `<div class="sports-team"><div class="sports-name">${team.en}<span class="en">${team.fr}</span></div>
+      <div class="sports-status">Unavailable <span class="en">Indisponible</span></div></div>`;
+  }
+  const lastHTML = s.last ? (() => {
+    const d = shortGameDate(s.last.date);
+    const vsAt = s.last.homeAway === 'home' ? 'vs' : '@';
+    return `<div class="sports-result ${s.last.winner ? 'win' : 'loss'}">
+      <span class="sports-tag">${s.last.winner ? 'W' : 'L'}</span>
+      <span class="sports-score">${s.last.myScore}–${s.last.oppScore}</span>
+      <span class="sports-opp">${vsAt} ${s.last.opponent}</span>
+      <span class="sports-when">${d.en} · ${d.fr}</span>
+    </div>`;
+  })() : '';
+  const nextHTML = s.next ? (() => {
+    const d = shortGameDate(s.next.date);
+    const vsAt = s.next.homeAway === 'home' ? 'vs' : '@';
+    return `<div class="sports-next"><span class="lbl">Next <span class="en">· Prochain</span></span> ${vsAt} ${s.next.opponent} · ${d.en} / ${d.fr}</div>`;
+  })() : '';
+  const empty = (!lastHTML && !nextHTML)
+    ? `<div class="sports-status">Season not started <span class="en">Saison à venir</span></div>` : '';
+  return `
+    <div class="sports-team">
+      ${s.logo ? `<img class="sports-logo" src="${s.logo}" alt="">` : ''}
+      <div class="sports-name">${team.en}<span class="en">${team.fr}</span></div>
+      ${s.record ? `<div class="sports-record">${s.record}${s.standing ? ' · ' + s.standing : ''}</div>` : ''}
+      ${lastHTML}
+      ${nextHTML}
+      ${empty}
+    </div>`;
+}
+
+// écran "Sports" : dernier résultat + prochain match pour chaque équipe de Houston,
+// se met à jour tout seul (ESPN, gratuit) et s'adapte si une saison n'a pas encore commencé
+function slideSports(){
+  const cards = CONFIG.SPORTS_TEAMS.map(sportsTeamCardHTML).join('');
+  return catWrap('cat-green', `
+    ${eyebrowHTML('sports', 'Houston Sports', 'Sports de Houston')}
+    <div class="slide-body" style="align-items:stretch">
+      <div class="sports-grid">${cards}</div>
+    </div>`);
+}
+
+/* ---------- pages personnalisées (texte + photo, ajoutées sur place) ---------- */
+let customPages = [];
+
+function loadCustomPages(){
+  try{ customPages = JSON.parse(storageGet('ema_custom_pages') || '[]'); }
+  catch(err){ customPages = []; }
+}
+function saveCustomPagesToStorage(){
+  storageSet('ema_custom_pages', JSON.stringify(customPages));
+}
+
+/* ---------- décorations libres : n'importe quel sticker/image posé à la main, page par page ---------- */
+// clé stable par écran (indépendante de l'ordre des diapositives, qui change selon le jour)
+// pour que chaque décor reste attaché à SA page même après un rebuildAndRestart()
+let pageDecorations = {};
+function loadPageDecorations(){
+  try{ pageDecorations = JSON.parse(storageGet('ema_page_decorations') || '{}'); }
+  catch(err){ pageDecorations = {}; }
+}
+function savePageDecorations(){
+  storageSet('ema_page_decorations', JSON.stringify(pageDecorations));
+}
+const DECO_EMOJI = ['🌸','⭐','🌈','☀️','🎈','❤️','📚','✏️','🍎','🚀','🦄','🐝','☁️','🎨','🌟','🧸'];
+
+function decoStyleAttr(d){
+  return `left:${d.x}%; top:${d.y}%; font-size:${d.size}px; transform:translate(-50%,-50%) rotate(${d.rot || 0}deg);`;
+}
+function decoContentHTML(d){
+  return d.kind === 'image' ? `<img src="${d.src}" draggable="false" alt="">` : `<span>${d.emoji}</span>`;
+}
+// glisser (déplacer) + molette (agrandir / Maj+molette pour tourner) directement sur l'élément,
+// comme bindFrameDrag() pour l'éditeur de collage — plus fiable qu'une délégation depuis #stage,
+// et évite qu'un <img> déclenche le glisser-déposer natif du navigateur
+function bindDecoInteractions(el){
+  let dragging = false, startX = 0, startY = 0, startDX = 0, startDY = 0, rect = null;
+  el.addEventListener('pointerdown', e => {
+    if(!decoEditing) return;
+    e.preventDefault(); e.stopPropagation();
+    const card = el.closest('.card');
+    const wrap = card.querySelector('.card-decos');
+    const d = (pageDecorations[card.dataset.decoKey] || []).find(dd => dd.id === el.dataset.id);
+    if(!d) return;
+    rect = wrap.getBoundingClientRect();
+    dragging = true; startX = e.clientX; startY = e.clientY; startDX = d.x; startDY = d.y;
+    el.classList.add('dragging');
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener('pointermove', e => {
+    if(!dragging) return;
+    const card = el.closest('.card');
+    const d = (pageDecorations[card.dataset.decoKey] || []).find(dd => dd.id === el.dataset.id);
+    if(!d) return;
+    d.x = Math.max(2, Math.min(98, startDX + (e.clientX - startX) / rect.width * 100));
+    d.y = Math.max(2, Math.min(98, startDY + (e.clientY - startY) / rect.height * 100));
+    el.style.left = d.x + '%'; el.style.top = d.y + '%';
+  });
+  const endDrag = () => {
+    if(!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+    savePageDecorations();
+  };
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+  el.addEventListener('wheel', e => {
+    if(!decoEditing) return;
+    e.preventDefault();
+    const card = el.closest('.card');
+    const d = (pageDecorations[card.dataset.decoKey] || []).find(dd => dd.id === el.dataset.id);
+    if(!d) return;
+    if(e.shiftKey) d.rot = (d.rot || 0) + (e.deltaY > 0 ? 10 : -10);
+    else d.size = Math.max(24, Math.min(260, (d.size || 80) - e.deltaY * .15));
+    el.setAttribute('style', decoStyleAttr(d));
+    savePageDecorations();
+  }, { passive:false });
+  const delBtn = el.querySelector('.deco-del');
+  if(delBtn) delBtn.addEventListener('pointerdown', e => e.stopPropagation()); // pas de drag depuis le bouton ×
+  if(delBtn) delBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const card = el.closest('.card');
+    const key = card.dataset.decoKey;
+    pageDecorations[key] = (pageDecorations[key] || []).filter(d => d.id !== el.dataset.id);
+    savePageDecorations();
+    el.remove();
+  });
+}
+function renderDecorationsForCard(card){
+  const key = card.dataset.decoKey;
+  const wrap = card.querySelector('.card-decos');
+  if(!wrap) return;
+  const list = pageDecorations[key] || [];
+  wrap.innerHTML = list.map(d => `
+    <div class="deco" data-id="${d.id}" style="${decoStyleAttr(d)}">
+      ${decoContentHTML(d)}
+      <button class="deco-del" data-id="${d.id}" title="Supprimer">×</button>
+    </div>`).join('');
+  wrap.querySelectorAll('.deco').forEach(bindDecoInteractions);
+  emojify(wrap);
+}
+function renderAllDecorations(){
+  document.querySelectorAll('.card').forEach(renderDecorationsForCard);
+}
+function addDecoration(kind, content){
+  const card = document.querySelector('.card.active');
+  if(!card) return;
+  const key = card.dataset.decoKey;
+  if(!pageDecorations[key]) pageDecorations[key] = [];
+  // apparaît en haut du mat, bien dégagé de la palette ancrée en bas de l'écran
+  const d = { id:'d' + Date.now() + Math.random().toString(36).slice(2,6), kind, size:80, rot:0, x:50, y:20 };
+  if(kind === 'emoji') d.emoji = content; else d.src = content;
+  pageDecorations[key].push(d);
+  savePageDecorations();
+  renderDecorationsForCard(card);
+}
+
+// libellé lisible pour chaque écran, afin de choisir manuellement la page à décorer
+function slideLabel(s){
+  const names = { datetime:"Date & heure", weather:"Météo & radar", monthcal:"Calendrier du mois", birthday:"Anniversaire", safety:"Sécurité", word:"Mot du jour", sports:"Sports" };
+  if(names[s.key]) return names[s.key];
+  if(s.key === 'calendar'){
+    const ev = CONFIG.SCHOOL_CALENDAR.find(e => 'calendar-' + e.start === s.decoKey);
+    return 'Calendrier — ' + (ev ? ev.fr : s.decoKey);
+  }
+  if(s.key === 'announce'){
+    const i = Number(s.decoKey.split('-')[1]);
+    const a = CONFIG.ANNOUNCEMENTS[i];
+    return 'Annonce — ' + (a ? a.fr : (i + 1));
+  }
+  if(s.key === 'custom'){
+    const id = s.decoKey.replace('page-', '');
+    const p = customPages.find(pp => pp.id === id);
+    if(p && p.kind === 'collage') return 'Page collage — ' + (p.title || 'Great Memories');
+    return 'Page photo — ' + (p && p.text ? p.text.slice(0, 26) : id);
+  }
+  return s.key;
+}
+function refreshDecoPageSelect(){
+  const sel = $('#decoPageSelect');
+  sel.innerHTML = slides.map((s,i) => `<option value="${i}">${slideLabel(s)}</option>`).join('');
+  sel.value = current;
+}
+$('#decoPageSelect').addEventListener('change', () => showSlide(Number($('#decoPageSelect').value)));
+
+function skyPlaceholderSVG(){
+  return `<svg viewBox="0 0 200 140" preserveAspectRatio="none">
+    <rect width="200" height="140" fill="#CDEBFA"/>
+    <circle cx="55" cy="32" r="12" fill="#fff"/><circle cx="68" cy="27" r="16" fill="#fff"/><circle cx="82" cy="34" r="11" fill="#fff"/>
+    <path d="M0 105 Q50 78 100 100 T200 92 V140 H0 Z" fill="#9ED155"/>
+    <path d="M0 118 Q60 95 120 112 T200 108 V140 H0 Z" fill="#7CB342"/>
+  </svg>`;
+}
+
+function normalizeFrame(f){
+  if(!f) return null;
+  if(typeof f === 'string') return { src:f, x:0, y:0, zoom:1 };
+  return { x:0, y:0, zoom:1, ...f };
+}
+
+function collageFrameHTML(rawFrame){
+  const f = normalizeFrame(rawFrame);
+  if(!f) return `<div class="collage-frame">${skyPlaceholderSVG()}</div>`;
+  return `<div class="collage-frame"><div class="collage-photo" style="background-image:url('${f.src}'); transform:scale(${f.zoom}) translate(${f.x}%, ${f.y}%)"></div></div>`;
+}
+
+function slidePhotoCollage(page){
+  return `
+    <div class="collage-wrap">
+      <svg class="collage-flower" viewBox="0 0 100 100"><g fill="var(--pink)" opacity=".9">
+        <ellipse cx="50" cy="20" rx="16" ry="26"/><ellipse cx="50" cy="80" rx="16" ry="26"/>
+        <ellipse cx="20" cy="50" rx="26" ry="16"/><ellipse cx="80" cy="50" rx="26" ry="16"/>
+      </g></svg>
+      <svg class="collage-squiggle" viewBox="0 0 160 60"><path d="M2 30 Q30 5 55 30 T110 30 T158 20" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>
+      <div class="collage-mat">
+        ${page.label ? `<div class="collage-tape">${page.label}</div>` : ''}
+        <div class="collage-grid">
+          <div class="g1">${collageFrameHTML(page.frames[0])}</div>
+          <div class="g2">${collageFrameHTML(page.frames[1])}</div>
+          <div class="g3">${collageFrameHTML(page.frames[2])}</div>
+          <div class="g4">${collageFrameHTML(page.frames[3])}</div>
+        </div>
+      </div>
+      <div class="collage-title">${page.title || 'Great Memories'}</div>
+    </div>`;
+}
+
+function slideCustomPage(p){
+  if(p.kind === 'collage') return slidePhotoCollage(p);
+  // une photo ajoutée via le formulaire simple prend le même cadre que la page collage
+  // (fond bleu ciel, image en "contain") et la légende reprend le titre manuscrit façon Canva
+  const img = p.image
+    ? `<div class="custom-frame"><div class="collage-photo" style="background-image:url('${p.image}')"></div></div>`
+    : '';
+  const txtClass = p.image ? 'collage-title' : 'headline';
+  const txt = p.text ? `<div class="${txtClass}">${p.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>` : '';
+  return catWrap('cat-lightblue', `
+    ${eyebrowHTML('photo', 'Message', 'Message')}
+    <div class="slide-body" style="flex-direction:column; gap:clamp(16px,2.4vh,28px)">
+      ${img}
+      ${txt}
+    </div>`);
+}
+
+function resizeImageFile(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > height && width > maxDim){ height = Math.round(height * maxDim / width); width = maxDim; }
+        else if(height > maxDim){ width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+let adminOpen = false, admPreviewData = null;
+
+function renderAdminList(){
+  const el = $('#admList');
+  if(!customPages.length){
+    el.innerHTML = '<h3>Pages ajoutées</h3><p style="opacity:.5;font-size:13px">Aucune page pour le moment.</p>';
+    return;
+  }
+  el.innerHTML = '<h3>Pages ajoutées</h3>' + customPages.map(p => {
+    const label = p.kind === 'collage'
+      ? `🖼️ ${p.title || 'Great Memories'}${p.label ? ' — ' + p.label : ''}`
+      : (p.text ? p.text.slice(0,40) : (p.image ? '📷 Photo' : '(vide)'));
+    const editBtn = p.kind === 'collage' ? `<button class="edit-btn" data-edit="${p.id}" title="Modifier">✏️</button>` : '';
+    return `
+    <div class="admin-list-item">
+      <span class="txt">${label}</span>
+      ${editBtn}
+      <button data-id="${p.id}" title="Supprimer">×</button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('button[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => openCollageEditor(btn.dataset.edit));
+  });
+  el.querySelectorAll('button[data-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      customPages = customPages.filter(p => p.id !== btn.dataset.id);
+      saveCustomPagesToStorage();
+      renderAdminList();
+      rebuildAndRestart();
+    });
+  });
+  emojify(el);
+}
+
+/* ---------- éditeur de page photo "collage" ---------- */
+let editingCollageId = null;
+
+function renderCollagePreview(page){
+  const inner = $('#colPreviewInner');
+  // on calque l'aperçu sur les dimensions RÉELLES de la carte affichée à l'écran
+  // (et non une taille fixe), sinon les proportions des cadres ne correspondent
+  // pas exactement à ce qui sera vraiment publié.
+  const realCard = document.querySelector('#stage .card');
+  const rect = realCard ? realCard.getBoundingClientRect() : { width:1280, height:720 };
+  const pad = realCard ? getComputedStyle(realCard).padding : '32px';
+  const w = Math.max(rect.width, 1), h = Math.max(rect.height, 1);
+  inner.style.width = w + 'px';
+  inner.style.height = h + 'px';
+  inner.innerHTML = `<div style="width:100%; height:100%; background:#FFCF57; box-sizing:border-box; padding:${pad}; display:flex;">${slidePhotoCollage(page)}</div>`;
+  const frame = $('#colPreviewFrame');
+  const scale = frame.clientWidth / w;
+  inner.style.transform = `scale(${scale})`;
+}
+
+function renderCollageFrames(page){
+  page.frames = page.frames.map(normalizeFrame);
+  const el = $('#colFrames');
+  el.innerHTML = page.frames.map((f, i) => `
+    <div class="col-dropzone" data-i="${i}">
+      ${f ? `
+        <div class="col-photo" style="background-image:url('${f.src}'); transform:scale(${f.zoom}) translate(${f.x}%, ${f.y}%)"></div>
+        <button class="col-change" data-i="${i}" title="Changer la photo">🔄</button>
+        <input type="range" class="col-zoom" data-i="${i}" min="1" max="2.5" step="0.05" value="${f.zoom}">
+        <div class="col-pad">
+          <button class="col-pad-up" data-dir="up" title="Monter">▲</button>
+          <button class="col-pad-left" data-dir="left" title="Gauche">◀</button>
+          <button class="col-pad-right" data-dir="right" title="Droite">▶</button>
+          <button class="col-pad-down" data-dir="down" title="Descendre">▼</button>
+        </div>
+      ` : '<span class="col-plus">+</span>'}
+      <input type="file" class="col-file" accept="image/*" data-i="${i}">
+    </div>`).join('');
+
+  el.querySelectorAll('.col-dropzone').forEach(zone => {
+    const i = +zone.dataset.i;
+    const input = zone.querySelector('.col-file');
+
+    zone.addEventListener('click', () => { if(!page.frames[i]) input.click(); });
+    const changeBtn = zone.querySelector('.col-change');
+    if(changeBtn) changeBtn.addEventListener('click', e => { e.stopPropagation(); input.click(); });
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('change', () => { if(input.files[0]) setCollageFrame(i, input.files[0]); });
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if(file) setCollageFrame(i, file);
+    });
+
+    const zoomInput = zone.querySelector('.col-zoom');
+    if(zoomInput) zoomInput.addEventListener('click', e => e.stopPropagation());
+    if(zoomInput) zoomInput.addEventListener('input', () => {
+      const f = page.frames[i];
+      f.zoom = parseFloat(zoomInput.value);
+      clampFramePan(f);
+      applyFrameTransform(zone, f);
+      saveCustomPagesToStorage();
+      renderCollagePreview(page);
+    });
+
+    bindFrameDrag(zone, page, i);
+    bindFramePad(zone, page, i);
+  });
+
+  renderCollagePreview(page);
+}
+
+function clampFramePan(f){
+  const maxPan = (f.zoom - 1) * 50;
+  f.x = Math.max(-maxPan, Math.min(maxPan, f.x));
+  f.y = Math.max(-maxPan, Math.min(maxPan, f.y));
+}
+
+function applyFrameTransform(zone, f){
+  const photoEl = zone.querySelector('.col-photo');
+  if(photoEl) photoEl.style.transform = `scale(${f.zoom}) translate(${f.x}%, ${f.y}%)`;
+}
+
+function bindFrameDrag(zone, page, i){
+  const photoEl = zone.querySelector('.col-photo');
+  if(!photoEl) return;
+  let dragging = false, startX = 0, startY = 0, startFX = 0, startFY = 0;
+  photoEl.style.cursor = 'grab';
+  photoEl.addEventListener('pointerdown', e => {
+    const f = page.frames[i];
+    dragging = true; startX = e.clientX; startY = e.clientY; startFX = f.x; startFY = f.y;
+    photoEl.setPointerCapture(e.pointerId);
+    photoEl.style.cursor = 'grabbing';
+  });
+  photoEl.addEventListener('pointermove', e => {
+    if(!dragging) return;
+    const f = page.frames[i];
+    const rect = zone.getBoundingClientRect();
+    f.x = startFX + (e.clientX - startX) / rect.width * 100;
+    f.y = startFY + (e.clientY - startY) / rect.height * 100;
+    clampFramePan(f);
+    applyFrameTransform(zone, f);
+    renderCollagePreview(page);
+  });
+  const endDrag = () => {
+    if(!dragging) return;
+    dragging = false;
+    photoEl.style.cursor = 'grab';
+    saveCustomPagesToStorage();
+  };
+  photoEl.addEventListener('pointerup', endDrag);
+  photoEl.addEventListener('pointerleave', endDrag);
+}
+
+function bindFramePad(zone, page, i){
+  const pad = zone.querySelector('.col-pad');
+  if(!pad) return;
+  const STEP = 8;
+  const DELTA = { up:[0,-STEP], down:[0,STEP], left:[-STEP,0], right:[STEP,0] };
+  pad.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const f = page.frames[i];
+      const [dx, dy] = DELTA[btn.dataset.dir];
+      f.x += dx; f.y += dy;
+      clampFramePan(f);
+      applyFrameTransform(zone, f);
+      saveCustomPagesToStorage();
+      renderCollagePreview(page);
+    });
+  });
+}
+
+async function setCollageFrame(i, file){
+  const page = customPages.find(p => p.id === editingCollageId);
+  if(!page) return;
+  const src = await resizeImageFile(file, 1400, 0.85);
+  page.frames[i] = { src, x:0, y:0, zoom:1 };
+  saveCustomPagesToStorage();
+  renderCollageFrames(page);
+}
+
+function openCollageEditor(id){
+  const page = customPages.find(p => p.id === id);
+  if(!page) return;
+  editingCollageId = id;
+  $('#colTitle').value = page.title || '';
+  $('#colLabel').value = page.label || '';
+  adminOpen = true;
+  $('#collageModal').classList.add('open');
+  renderCollageFrames(page);
+}
+
+function closeCollageEditor(){
+  editingCollageId = null;
+  adminOpen = false;
+  $('#collageModal').classList.remove('open');
+  renderAdminList();
+  rebuildAndRestart();
+}
+
+function openAdmin(){
+  adminOpen = true;
+  $('#adminModal').classList.add('open');
+  renderAdminList();
+}
+function closeAdmin(){
+  adminOpen = false;
+  $('#adminModal').classList.remove('open');
+  $('#admText').value = '';
+  $('#admImage').value = '';
+  $('#admPreview').style.display = 'none';
+  admPreviewData = null;
+}
+
+/* ---------- moteur de rotation ---------- */
+const SLIDE_TABS = {
+  datetime: { icon:'clock',    cat:'cat-blue' },
+  weather:  { icon:'weather',  cat:'cat-lightblue' },
+  monthcal: { icon:'calendar', cat:'cat-blue' },
+  calendar: { icon:'calendar', cat:'cat-pink' },
+  birthday: { icon:'cake',     cat:'cat-yellow' },
+  safety:   { icon:'shield',   cat:'cat-green' },
+  word:     { icon:'word',     cat:'cat-pink' },
+  announce: { icon:'announce', cat:'cat-blue' },
+  sports:   { icon:'sports',   cat:'cat-green' },
+  custom:   { icon:'photo',    cat:'cat-lightblue' },
+};
+
+function buildSlideList(){
+  // decoKey identifie chaque écran de façon stable (contrairement à son index, qui bouge
+  // selon les anniversaires/événements du jour) afin que les décors posés à la main restent
+  // attachés à la bonne page d'un jour à l'autre
+  const slides = [
+    { key:'datetime', decoKey:'datetime', html: slideDateTime() },
+    { key:'weather',  decoKey:'weather',  html: slideWeather() },
+    { key:'monthcal', decoKey:'monthcal', html: slideMonthCalendar() },
+  ];
+  upcomingCalendarEvents().forEach(ev => slides.push({ key:'calendar', decoKey:'calendar-' + ev.start, html: slideCalendarEvent(ev) }));
+  const bdays = todaysBirthdays();
+  if(bdays.length) slides.push({ key:'birthday', decoKey:'birthday', html: slideBirthday(bdays) });
+  slides.push({ key:'safety', decoKey:'safety', html: slideSafety() });
+  slides.push({ key:'word', decoKey:'word', html: slideWord() });
+  CONFIG.ANNOUNCEMENTS.forEach((a,i) => slides.push({ key:'announce', decoKey:'announce-' + i, html: slideAnnouncement(a) }));
+  slides.push({ key:'sports', decoKey:'sports', html: slideSports() });
+  customPages.forEach(p => slides.push({ key:'custom', decoKey:'page-' + p.id, html: slideCustomPage(p) }));
+  return slides;
+}
+
+let slides = [];
+let current = 0;
+let timerStart = 0;
+let rafId = null;
+
+function mountStage(){
+  const stage = $('#stage');
+  const tabs = $('#tabs');
+  stage.innerHTML = slides.map((s,i)=>`<div class="card" data-i="${i}" data-deco-key="${s.decoKey}">${s.html}<div class="card-decos"></div></div>`).join('');
+  tabs.innerHTML = slides.map((s,i)=>{
+    const t = SLIDE_TABS[s.key] || { icon:'calendar', cat:'cat-blue' };
+    return `<div class="tab ${t.cat}" data-i="${i}">${catIcon(t.icon)}</div>`;
+  }).join('');
+  $('#dots').innerHTML = slides.map((_,i)=>`<span data-i="${i}"></span>`).join('');
+  renderAllDecorations();
+  emojify(stage);
+}
+
+function renderIfActive(key){
+  // met à jour le contenu d'une diapositive déjà construite (ex: météo arrivée après coup)
+  const idx = slides.findIndex(s => s.key === key);
+  if(idx === -1) return;
+  if(key==='weather'){
+    // ne touche qu'au texte météo : on ne remplace pas le DOM de la carte radar,
+    // sinon la carte Leaflet se retrouverait accrochée à un élément supprimé.
+    const el = document.getElementById('weatherLeft');
+    if(el){ el.innerHTML = weatherLeftHTML(); emojify(el); }
+    return;
+  }
+  if(key==='datetime') slides[idx].html = slideDateTime();
+  if(key==='birthday') slides[idx].html = slideBirthday(todaysBirthdays());
+  if(key==='sports') slides[idx].html = slideSports();
+  const card = document.querySelector(`.card[data-i="${idx}"]`);
+  if(card){
+    // on garde le conteneur de décors : un innerHTML brut l'effacerait sinon
+    card.innerHTML = slides[idx].html + '<div class="card-decos"></div>';
+    renderDecorationsForCard(card);
+    emojify(card);
+  }
+}
+
+function showSlide(i){
+  current = i;
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('active', +c.dataset.i === i));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', +t.dataset.i === i));
+  document.querySelectorAll('#dots span').forEach(d => d.classList.toggle('active', +d.dataset.i === i));
+  timerStart = performance.now();
+  if(slides[i] && slides[i].key === 'weather'){
+    initRadarMap();
+    setTimeout(() => radarMap && radarMap.invalidateSize(), 650); // après la transition de fondu
+  }
+}
+
+function tickProgress(){
+  if(adminOpen || decoEditing){ rafId = requestAnimationFrame(tickProgress); return; } // pause pendant l'édition
+  const elapsed = (performance.now() - timerStart) / 1000;
+  const pct = Math.min(100, (elapsed / CONFIG.SLIDE_SECONDS) * 100);
+  $('#progress-fill').style.width = pct + '%';
+  if(elapsed >= CONFIG.SLIDE_SECONDS){
+    showSlide((current + 1) % slides.length);
+  }
+  rafId = requestAnimationFrame(tickProgress);
+}
+
+function rebuildAndRestart(){
+  destroyRadarMap(); // le DOM de la carte va être remplacé, on la réinitialisera au besoin
+  slides = buildSlideList();
+  mountStage();
+  showSlide(0);
+}
+
+/* ---------- horloge d'entête (toujours visible) ---------- */
+let lastClockMinute = null;
+function tickHeaderClock(){
+  const now = new Date();
+  $('#hdrTime').textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(now);
+  $('#hdrDate').textContent = new Intl.DateTimeFormat('en-US',{weekday:'short',month:'short',day:'numeric'}).format(now)
+    + ' · ' + cap(new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'numeric',month:'short'}).format(now));
+  // la grande horloge de l'écran "Aujourd'hui" est un bloc de HTML généré une seule fois
+  // (contrairement au badge ci-dessus) : sans ceci elle reste figée à l'heure d'ouverture
+  // de la page tant qu'aucun changement de jour ne force une reconstruction complète.
+  const minuteKey = now.getHours() + ':' + now.getMinutes();
+  if(minuteKey !== lastClockMinute){
+    lastClockMinute = minuteKey;
+    renderIfActive('datetime');
+  }
+}
+
+/* ---------- veille sur le changement de jour + reload nocturne ---------- */
+let lastDay = new Date().getDate();
+function watchDayChange(){
+  const now = new Date();
+  if(now.getDate() !== lastDay){
+    lastDay = now.getDate();
+    rebuildAndRestart(); // nouveau jour : anniversaires / mot du jour à jour
+  }
+  if(now.getHours() === CONFIG.RELOAD_HOUR && now.getMinutes() === 0){
+    location.reload();
+  }
+}
+
+/* ---------- interactions écran tactile (iPad) ---------- */
+function goNext(){ if(adminOpen || decoEditing) return; showSlide((current + 1) % slides.length); }
+document.addEventListener('click', goNext);
+
+/* ---------- décorer l'écran affiché : glisser-déposer + molette pour la taille/rotation ---------- */
+let decoEditing = false;
+
+function startDecoEditing(){
+  decoEditing = true;
+  document.body.classList.add('deco-editing');
+  $('#decoPalette').classList.add('open');
+  refreshDecoPageSelect();
+}
+function stopDecoEditing(){
+  decoEditing = false;
+  document.body.classList.remove('deco-editing');
+  $('#decoPalette').classList.remove('open');
+}
+
+$('#decoEmojiRow').innerHTML = DECO_EMOJI.map(e => `<button type="button" class="deco-pick" data-emoji="${e}">${e}</button>`).join('');
+emojify($('#decoEmojiRow')); // data-emoji garde le vrai caractère même une fois converti en image
+$('#decoEmojiRow').addEventListener('click', (e) => {
+  const btn = e.target.closest('.deco-pick');
+  if(!btn) return;
+  addDecoration('emoji', btn.dataset.emoji);
+});
+$('#decoImageInput').addEventListener('change', async () => {
+  const file = $('#decoImageInput').files[0];
+  if(!file) return;
+  const dataUrl = await resizeImageFile(file, 500, 0.85);
+  addDecoration('image', dataUrl);
+  $('#decoImageInput').value = '';
+});
+$('#admDecorate').addEventListener('click', () => { closeAdmin(); startDecoEditing(); });
+$('#decoDone').addEventListener('click', stopDecoEditing);
+
+/* ---------- accès au panneau "Ajouter une page" : 5 taps sur le logo en 3s ---------- */
+let adminTapCount = 0, adminTapTimer = null;
+$('.mark').addEventListener('click', (e) => {
+  e.stopPropagation();
+  adminTapCount++;
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 3000);
+  if(adminTapCount >= 5){ adminTapCount = 0; openAdmin(); }
+});
+
+$('#admCancel').addEventListener('click', closeAdmin);
+$('#adminModal').addEventListener('click', (e) => { if(e.target.id === 'adminModal') closeAdmin(); });
+
+$('#admImage').addEventListener('change', async () => {
+  const file = $('#admImage').files[0];
+  if(!file) return;
+  admPreviewData = await resizeImageFile(file, 1600, 0.82);
+  $('#admPreview').src = admPreviewData;
+  $('#admPreview').style.display = 'block';
+});
+
+$('#admSave').addEventListener('click', () => {
+  const text = $('#admText').value.trim();
+  if(!text && !admPreviewData){ alert("Ajoutez un message ou une photo avant d'enregistrer."); return; }
+  customPages.push({ id:'p' + Date.now(), kind:'text', text, image: admPreviewData, createdAt: Date.now() });
+  saveCustomPagesToStorage();
+  closeAdmin();
+  rebuildAndRestart();
+});
+
+$('#admAddCollage').addEventListener('click', () => {
+  const page = { id:'p' + Date.now(), kind:'collage', title:'Great Memories', label:'Class 5A', frames:[null,null,null,null], createdAt:Date.now() };
+  customPages.push(page);
+  saveCustomPagesToStorage();
+  openCollageEditor(page.id);
+});
+
+$('#colTitle').addEventListener('input', () => {
+  const page = customPages.find(p => p.id === editingCollageId);
+  if(page){ page.title = $('#colTitle').value; saveCustomPagesToStorage(); renderCollagePreview(page); }
+});
+$('#colLabel').addEventListener('input', () => {
+  const page = customPages.find(p => p.id === editingCollageId);
+  if(page){ page.label = $('#colLabel').value; saveCustomPagesToStorage(); renderCollagePreview(page); }
+});
+$('#colClose').addEventListener('click', closeCollageEditor);
+$('#collageModal').addEventListener('click', (e) => { if(e.target.id === 'collageModal') closeCollageEditor(); });
+
+let cursorTimer = null;
+document.addEventListener('mousemove', () => {
+  document.body.classList.add('show-cursor');
+  clearTimeout(cursorTimer);
+  cursorTimer = setTimeout(() => document.body.classList.remove('show-cursor'), 3000);
+});
+
+document.addEventListener('dblclick', () => {
+  if(!document.fullscreenElement && document.documentElement.requestFullscreen){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+});
+
+/* ---------- démarrage ---------- */
+drawSky();
+tickHeaderClock();
+setInterval(tickHeaderClock, 1000);
+setInterval(watchDayChange, 30000);
+fetchWeather();
+setInterval(fetchWeather, CONFIG.WEATHER.REFRESH_MINUTES * 60000);
+setInterval(() => { if(radarMap) loadRadarFrames(); }, 10 * 60000); // RainViewer publie une nouvelle image ~toutes les 10 min
+fetchAllSports();
+setInterval(fetchAllSports, CONFIG.SPORTS_REFRESH_MINUTES * 60000);
+loadCustomPages();
+loadPageDecorations();
+rebuildAndRestart(); // démarre tout de suite avec les données de secours
+emojify(document.getElementById('adminModal')); // libellés statiques du panneau admin (🖼️ 🎨…)
+rafId = requestAnimationFrame(tickProgress);
+
+refreshBirthdays(); // puis se met à jour dès que le Google Sheets répond
+setInterval(refreshBirthdays, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
+</script>
+</body>
+</html>
