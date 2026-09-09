@@ -211,6 +211,32 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
   border-radius:30px; background:var(--cat-tint,#EAF4FB); display:flex; align-items:center; justify-content:center;
   font-size:clamp(56px,3.2vw + 4.6vh,100px); line-height:1; box-shadow:inset 0 0 0 1px rgba(0,59,113,.06);
 }
+/* ---------- page "activité du jour" (Tippi Toes, Jolly Trolley...) : grand logo + danseurs ---------- */
+.activity-stage{position:relative; display:flex; align-items:center; justify-content:center}
+.activity-logo{
+  position:relative; z-index:1; flex:0 0 auto;
+  width:clamp(200px,16vw + 16vh,380px); height:clamp(200px,16vw + 16vh,380px);
+  border-radius:36px; background:#fff; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 20px 50px -10px rgba(0,32,64,.22), 0 2px 8px rgba(0,32,64,.06);
+  animation:activityLogoPulse 2.6s ease-in-out infinite;
+}
+@keyframes activityLogoPulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.035)}}
+.activity-dancer{position:absolute; z-index:0; bottom:-4%; width:clamp(56px,5.5vw + 5.5vh,120px); opacity:.9; pointer-events:none}
+.activity-dancer svg{width:100%; height:100%; display:block}
+.activity-dancer.left{left:-15%; animation:activityDancerLeft 1.15s ease-in-out infinite}
+.activity-dancer.right{right:-15%; animation:activityDancerRight 1.15s ease-in-out infinite .35s}
+@keyframes activityDancerLeft{0%,100%{transform:translateY(0) rotate(-8deg)} 50%{transform:translateY(-16px) rotate(8deg)}}
+@keyframes activityDancerRight{0%,100%{transform:scaleX(-1) translateY(0) rotate(-8deg)} 50%{transform:scaleX(-1) translateY(-16px) rotate(8deg)}}
+/* variante "gymnastique" (Jolly Trolley) : silhouette en croix qui tourne sur elle-même façon
+   roue/culbute — figure symétrique, donc pas besoin de version miroir pour le côté droit */
+.activity-dancer.left.gymnast{animation:activityGymnastSpin 1.3s linear infinite}
+.activity-dancer.right.gymnast{animation:activityGymnastSpin 1.3s linear infinite .5s}
+@keyframes activityGymnastSpin{
+  0%{transform:rotate(0deg) translateY(0)}
+  50%{transform:rotate(180deg) translateY(-18px)}
+  100%{transform:rotate(360deg) translateY(0)}
+}
+
 .headline{font-family:'Mitr',sans-serif; font-weight:600; font-size:clamp(32px,2.6vw + 3.2vh,68px); color:var(--ink); line-height:1.14}
 .headline .en{display:block; font-size:.56em; color:var(--ink-faint); font-weight:700; margin-top:10px}
 
@@ -239,6 +265,12 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
 .month-cal-day.today{background:var(--cat,var(--blue)); box-shadow:0 6px 16px rgba(0,32,64,.22)}
 .month-cal-day.today .month-cal-num{color:#fff}
 .month-cal-icons{display:flex; gap:2px; font-size:clamp(12px,.9vw + .6vh,18px); line-height:1}
+/* logos des activités hebdomadaires (Tippi Toes, Jolly Trolley...) : un disque blanc derrière
+   pour rester lisibles même sur la case "aujourd'hui" (fond bleu foncé) */
+.month-cal-icons img{
+  height:1.35em; width:1.35em; object-fit:contain; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); padding:1.5px;
+}
 
 /* liste des évènements du mois : nom + date, sous la grille */
 .month-cal-events{
@@ -333,11 +365,11 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
   border-radius:18px; overflow:hidden; background:#CDEBFA; box-shadow:0 16px 40px rgba(0,59,113,.2)}
 
 /* ---------- panneau "Ajouter une page" ---------- */
-#adminModal{
+#adminModal, #aiModal{
   position:fixed; inset:0; z-index:1000; background:rgba(0,40,80,.6);
   display:none; align-items:center; justify-content:center; padding:24px; cursor:auto;
 }
-#adminModal.open{display:flex}
+#adminModal.open, #aiModal.open{display:flex}
 .admin-panel{
   background:#fff; border-radius:32px; max-width:520px; width:100%; max-height:88vh;
   overflow-y:auto; padding:30px 32px; box-shadow:0 30px 80px rgba(0,0,0,.35);
@@ -351,6 +383,11 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
   font-family:'Nunito',sans-serif; font-size:15px; resize:vertical; color:var(--blue);
 }
 .admin-field input[type=file]{width:100%; font-size:14px; color:var(--blue)}
+.admin-field input[type=text], .admin-field input[type=password]{
+  width:100%; border:2px solid #EAF4FB; border-radius:16px; padding:12px 14px;
+  font-family:'Nunito',sans-serif; font-size:15px; color:var(--blue);
+}
+.admin-panel p.hint a{color:var(--pink); font-weight:800}
 .admin-preview{margin-top:12px; max-width:100%; max-height:180px; border-radius:16px; display:none}
 .admin-actions{display:flex; gap:12px; margin-top:20px}
 .admin-btn{flex:1; border:none; border-radius:999px; padding:14px 18px; font-weight:700; font-family:'Mitr',sans-serif; font-size:15px; cursor:pointer}
@@ -365,6 +402,26 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
 
 .admin-divider{display:flex; align-items:center; gap:12px; margin:22px 0; color:var(--blue); opacity:.4; font-weight:800; font-size:12px; text-transform:uppercase}
 .admin-divider::before, .admin-divider::after{content:""; flex:1; height:2px; background:#EAF4FB}
+
+/* ---------- génération de contenu par IA (v6) ---------- */
+.ai-type-row{display:flex; gap:8px; margin-bottom:18px}
+.ai-type-btn{
+  flex:1; border:2px solid #EAF4FB; background:#fff; color:var(--blue); border-radius:14px;
+  padding:10px 8px; font-weight:800; font-size:13px; cursor:pointer; text-align:center;
+}
+.ai-type-btn.active{background:var(--blue); border-color:var(--blue); color:#fff}
+#aiResult{margin-top:8px}
+.ai-status{font-weight:700; font-size:14px; color:var(--ink-soft); text-align:center; padding:14px 0}
+.ai-status.error{color:var(--pink)}
+.ai-preview{
+  border:2px solid #EAF4FB; border-radius:18px; padding:18px; margin-top:6px;
+  display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center;
+}
+.ai-preview .fr{font-family:'Mitr',sans-serif; font-weight:700; font-size:20px; color:var(--blue)}
+.ai-preview .en{font-weight:700; font-size:15px; color:var(--ink-faint)}
+.ai-preview .emoji{font-size:40px}
+.ai-preview img, .ai-preview svg{width:110px; height:110px}
+.ai-preview-actions{display:flex; gap:10px; width:100%; margin-top:6px}
 
 /* ---------- décorations libres : stickers/images posés à la main sur une page ---------- */
 .card-decos{position:absolute; inset:0; z-index:30; pointer-events:none}
@@ -566,8 +623,44 @@ body.deco-editing .deco-del{display:flex}
     <div class="admin-divider"><span>ou</span></div>
     <button class="admin-btn collage-btn" id="admAddCollage">🖼️ Ajouter une page photo (façon collage)</button>
     <button class="admin-btn collage-btn" id="admDecorate">🎨 Décorer l'écran affiché en ce moment</button>
+    <button class="admin-btn collage-btn" id="admOpenAI">🤖 Générer avec l'IA</button>
 
     <div class="admin-list" id="admList"></div>
+  </div>
+</div>
+
+<!-- Génération de contenu par IA : thème de sécurité, mot du jour, ou illustration.
+     La clé API reste uniquement dans le navigateur de cet appareil (localStorage) —
+     elle n'est jamais écrite dans ce fichier HTML, donc jamais publiée sur GitHub. -->
+<div id="aiModal">
+  <div class="admin-panel">
+    <h2>Générer avec l'IA</h2>
+    <p class="hint">
+      Utilise votre propre clé API Anthropic (Claude). Elle est enregistrée uniquement sur cet
+      appareil, jamais dans le fichier — ne la collez jamais ailleurs que ci-dessous.
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Créer une clé →</a>
+    </p>
+    <div class="admin-field">
+      <label>Clé API Anthropic</label>
+      <input type="password" id="aiKeyInput" placeholder="sk-ant-...">
+    </div>
+
+    <div class="admin-divider"><span>quoi générer</span></div>
+    <div class="ai-type-row">
+      <button type="button" class="ai-type-btn active" data-type="safety">🛡️ Thème sécurité</button>
+      <button type="button" class="ai-type-btn" data-type="word">🈶 Mot du jour</button>
+      <button type="button" class="ai-type-btn" data-type="icon">🎨 Illustration</button>
+    </div>
+    <div class="admin-field">
+      <label id="aiTopicLabel">Sujet (ex. « saison des ouragans », « la neige »...)</label>
+      <input type="text" id="aiTopicInput" placeholder="Laissez vide pour une suggestion libre">
+    </div>
+    <div class="admin-actions">
+      <button class="admin-btn secondary" id="aiCancel">Fermer</button>
+      <button class="admin-btn primary" id="aiGenerate">Générer</button>
+    </div>
+
+    <div id="aiResult"></div>
   </div>
 </div>
 
@@ -658,6 +751,26 @@ const CONFIG = {
   DATA_SOURCES: {
     BIRTHDAYS_CSV_URL: "",
     REFRESH_MINUTES: 15,
+
+    /* --------------------------------------------------------------
+       CONTENU QUOTIDIEN GÉNÉRÉ PAR IA (mot du jour + thème sécurité) —
+       rempli automatiquement chaque nuit par un workflow n8n (voir
+       n8n-contenu-quotidien.json fourni à côté de ce fichier), qui
+       appelle Claude puis écrit une ligne dans un Google Sheets.
+       Marche à suivre (une fois) :
+       1. Créez un onglet "Contenu IA" dans votre Google Sheets —
+          colonnes : Date (AAAA-MM-JJ) | Type (mot / securite) | FR | EN | Emoji
+       2. Fichier > Partager > Publier sur le web > choisissez cet
+          onglet > format CSV > Publier.
+       3. Collez le lien obtenu ci-dessous, entre guillemets.
+       4. Dans n8n, configurez le workflow importé avec votre clé API
+          Anthropic et l'accès à ce même Google Sheets.
+       Tant que ce lien est vide (ou qu'aucune ligne ne correspond à
+       la date du jour), l'écran retombe automatiquement sur les
+       banques WORDS_BY_MONTH / SAFETY_THEMES ci-dessous : rien à
+       changer côté écran si le workflow n8n ne tourne pas encore.
+       -------------------------------------------------------------- */
+    AI_CONTENT_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGm_ha1hMoy_m-JazsQzcigQcHJCIaiuzla3leInLthOWnJBzeawpSPZCk6OzhHsr10gYiCbXR89YJ/pub?gid=1942746586&single=true&output=csv",
   },
 
   // Données de secours, utilisées si le Google Sheets n'est pas encore
@@ -850,6 +963,18 @@ const CONFIG = {
     { start:"2027-05-31",                   type:"closed",    emoji:"🎖️", fr:"Memorial Day — École fermée", en:"Memorial Day — School Closed" },
     { start:"2027-06-01",                   type:"camp",      emoji:"🏕️", fr:"Premier jour du camp d'été", en:"First Day of Summer Camp" },
     { start:"2027-07-05",                   type:"closed",    emoji:"🎆", fr:"Fête nationale (4 juillet) — École fermée", en:"Independence Day (observed) — School Closed" },
+  ],
+
+  /* --------------------------------------------------------------
+     ACTIVITÉS HEBDOMADAIRES — apparaissent automatiquement sur la
+     vue "mois" du calendrier, chaque semaine, sur le jour indiqué
+     (logo affiché sur la case du jour). weekday : 0=dimanche,
+     1=lundi, 2=mardi, 3=mercredi, 4=jeudi, 5=vendredi, 6=samedi.
+     Les fichiers logo doivent être placés à côté de ce fichier HTML.
+     -------------------------------------------------------------- */
+  WEEKLY_ACTIVITIES: [
+    { weekday:3, en:"Tippi Toes Houston", fr:"Tippi Toes Houston", logo:"logo-tippi-toes.png",   theme:"dance" },
+    { weekday:4, en:"The Jolly Trolley",  fr:"The Jolly Trolley",  logo:"logo-jolly-trolley.jpg", theme:"gymnastics" },
   ],
 
   // Annonces libres (facultatif) — laissez [] pour n'en afficher aucune
@@ -1212,6 +1337,43 @@ async function refreshBirthdays(){
   }
 }
 
+/* ---------- contenu quotidien généré par IA (mot du jour + sécurité), via n8n + Google Sheets ---------- */
+// { word:{fr,en,emoji}|null, safety:{fr,en}|null } — seulement les entrées datées d'AUJOURD'HUI ;
+// pas de mise en cache "hier" ici (contrairement aux anniversaires) : un contenu périmé d'un
+// autre jour affiché comme "mot du jour" serait pire que de retomber sur la banque WORDS_BY_MONTH
+let dailyAIContent = { word:null, safety:null };
+
+async function fetchDailyAIContent(){
+  const url = CONFIG.DATA_SOURCES.AI_CONTENT_CSV_URL;
+  if(!url) return;
+  try{
+    const res = await fetch(url + (url.includes('?') ? '&' : '?') + 'cachebust=' + Date.now());
+    const rows = parseCSV(await res.text()).filter(r => r.length && (r[0]||'').trim());
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const entries = rows.slice(1)
+      .map(r => ({
+        date: (r[0]||'').trim(),
+        type: (r[1]||'').trim().toLowerCase(),
+        fr: (r[2]||'').trim(),
+        en: (r[3]||'').trim(),
+        emoji: (r[4]||'').trim(),
+      }))
+      .filter(e => e.date === todayStr && e.fr && e.en);
+    const word = entries.find(e => e.type === 'mot');
+    const safety = entries.find(e => e.type === 'securite' || e.type === 'sécurité');
+    const next = {
+      word: word ? { fr:word.fr, en:word.en, emoji:word.emoji || '💬' } : null,
+      safety: safety ? { fr:safety.fr, en:safety.en } : null,
+    };
+    const changed = JSON.stringify(next) !== JSON.stringify(dailyAIContent);
+    dailyAIContent = next;
+    if(changed) rebuildAndRestart(); // le mot/message affiché doit refléter le nouveau contenu
+  }catch(err){
+    // pas grave : les écrans "mot du jour" / "sécurité" retombent sur leur banque habituelle
+  }
+}
+
 /* ---------- construction des diapositives ---------- */
 // écran d'accueil (v5) : mise en page éditoriale "site vitrine" — ne passe pas par
 // catWrap()/eyebrowHTML() comme les autres écrans, car cette page a son propre design
@@ -1312,12 +1474,17 @@ function slideBirthday(list){
 function activeSafetyMessages(){
   let all = [];
   CONFIG.ACTIVE_SAFETY_THEMES.forEach(t => { if(CONFIG.SAFETY_THEMES[t]) all = all.concat(CONFIG.SAFETY_THEMES[t]); });
+  all = all.concat(customAIContent.safety); // thèmes générés par l'IA, ajoutés depuis le panneau admin
   return all.length ? all : [{ fr:"Ajoutez des messages dans SAFETY_THEMES.", en:"Add messages in SAFETY_THEMES." }];
 }
 
 function slideSafety(){
-  const list = activeSafetyMessages();
-  const msg = list[dayOfYear(new Date()) % list.length];
+  // priorité au message généré la nuit même par n8n pour aujourd'hui (voir fetchDailyAIContent),
+  // sinon rotation habituelle dans la banque SAFETY_THEMES
+  const msg = dailyAIContent.safety || (() => {
+    const list = activeSafetyMessages();
+    return list[dayOfYear(new Date()) % list.length];
+  })();
   return catWrap('cat-green', `
     ${eyebrowHTML('shield', 'Safety', 'Sécurité')}
     <div class="slide-body">
@@ -1328,9 +1495,13 @@ function slideSafety(){
 
 function slideWord(){
   const now = new Date();
-  const month = now.getMonth() + 1;
-  const bank = CONFIG.WORDS_BY_MONTH[month] || CONFIG.WORDS_BY_MONTH[1];
-  const w = bank[dayOfYear(now) % bank.length];
+  // priorité au mot généré la nuit même par n8n pour aujourd'hui (voir fetchDailyAIContent),
+  // sinon rotation habituelle dans la banque du mois (+ mots ajoutés à la main depuis le panneau admin)
+  const w = dailyAIContent.word || (() => {
+    const month = now.getMonth() + 1;
+    const bank = (CONFIG.WORDS_BY_MONTH[month] || CONFIG.WORDS_BY_MONTH[1]).concat(customAIContent.words);
+    return bank[dayOfYear(now) % bank.length];
+  })();
   return catWrap('cat-pink', `
     ${eyebrowHTML('word', 'Word of the Day', 'Mot du jour')}
     <div class="slide-body">
@@ -1406,6 +1577,60 @@ function slideCalendarEvent(ev){
     </div>`);
 }
 
+// rappel plein écran pour une activité hebdomadaire (ex. Tippi Toes le mercredi) : le logo
+// en grand, sur fond blanc pour qu'il ressorte quelle que soit la couleur de la carte
+// petite silhouette d'enfant qui danse (bras en l'air, jambe qui swingue) — même style trait
+// que catIcon(), réutilisée deux fois (miroir à droite) autour du logo de l'activité du jour
+function dancerSVG(color){
+  return `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="${color}" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="50" cy="17" r="15" fill="${color}" stroke="none"/>
+      <path d="M50 34 L50 82"/>
+      <path d="M50 44 L24 22"/>
+      <path d="M50 44 L76 22"/>
+      <path d="M50 82 L28 128"/>
+      <path d="M50 82 L80 104"/>
+    </g>
+  </svg>`;
+}
+
+// silhouette en croix (bras + jambes écartés depuis le centre) : figure symétrique qui, une
+// fois tournée en CSS, se lit comme une roue/culbute plutôt qu'un pas de danse
+function gymnastSVG(color){
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="${color}" stroke-width="11" stroke-linecap="round">
+      <circle cx="50" cy="50" r="12" fill="${color}" stroke="none"/>
+      <path d="M50 50 L18 18"/>
+      <path d="M50 50 L82 18"/>
+      <path d="M50 50 L18 82"/>
+      <path d="M50 50 L82 82"/>
+    </g>
+  </svg>`;
+}
+
+// choisit la silhouette (danseuse ou gymnaste) et l'animation selon activity.theme
+function activityFigureHTML(activity, side){
+  const color = side === 'left' ? 'var(--pink)' : 'var(--lightblue)';
+  const isGym = activity.theme === 'gymnastics';
+  const svg = isGym ? gymnastSVG(color) : dancerSVG(color);
+  return `<div class="activity-dancer ${side}${isGym ? ' gymnast' : ''}">${svg}</div>`;
+}
+
+function slideWeeklyActivity(activity){
+  return catWrap('cat-yellow', `
+    ${eyebrowHTML('calendar', 'Activity Today', "Activité aujourd'hui")}
+    <div class="slide-body" style="flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:clamp(20px,3vh,36px)">
+      <div class="activity-stage">
+        ${activityFigureHTML(activity, 'left')}
+        <div class="activity-logo">
+          <img src="${activity.logo}" alt="${activity.en}" style="width:80%; height:80%; object-fit:contain">
+        </div>
+        ${activityFigureHTML(activity, 'right')}
+      </div>
+      <div class="headline">${activity.en}<span class="en">${activity.fr}</span></div>
+    </div>`);
+}
+
 // une couleur par type d'événement, reprise comme liseré sur chaque ligne de la liste
 const CALENDAR_TYPE_COLOR = {
   closed:     'var(--pink)',
@@ -1418,6 +1643,18 @@ const CALENDAR_TYPE_COLOR = {
 
 function eventsOnISODate(iso){
   return CONFIG.SCHOOL_CALENDAR.filter(ev => iso >= ev.start && iso <= (ev.end || ev.start));
+}
+
+// activités récurrentes (ex. Tippi Toes le mercredi) qui tombent sur cette date, quel que
+// soit le mois affiché — se répètent indéfiniment, pas besoin de les lister date par date
+function weeklyActivitiesOnISODate(iso){
+  const dow = new Date(iso + 'T00:00:00').getDay();
+  return (CONFIG.WEEKLY_ACTIVITIES || []).filter(a => a.weekday === dow);
+}
+
+function todaysWeeklyActivities(){
+  const dow = new Date().getDay();
+  return (CONFIG.WEEKLY_ACTIVITIES || []).filter(a => a.weekday === dow);
 }
 
 // évènements dont une partie au moins tombe dans le mois donné (utile pour ceux à cheval
@@ -1461,7 +1698,10 @@ function slideMonthCalendar(){
   for(let d = 1; d <= daysInMonth; d++){
     const iso = `${year}-${pad(month + 1)}-${pad(d)}`;
     const evs = eventsOnISODate(iso);
-    const icons = evs.slice(0, 2).map(e => `<span>${e.emoji}</span>`).join('');
+    const weekly = weeklyActivitiesOnISODate(iso);
+    const eventIcons = evs.slice(0, 2).map(e => `<span>${e.emoji}</span>`).join('');
+    const weeklyIcons = weekly.map(a => `<img src="${a.logo}" alt="${a.en}" title="${a.en} · ${a.fr}">`).join('');
+    const icons = eventIcons + weeklyIcons;
     cells += `<div class="month-cal-day${d === todayNum ? ' today' : ''}">
       <span class="month-cal-num">${d}</span>
       ${icons ? `<span class="month-cal-icons">${icons}</span>` : ''}
@@ -1555,6 +1795,135 @@ function slideSports(){
     <div class="slide-body" style="align-items:stretch">
       <div class="sports-grid">${cards}</div>
     </div>`);
+}
+
+/* ---------- génération de contenu par IA (Claude) — thèmes sécurité, mots du jour, icônes ----------
+   La clé API n'est JAMAIS écrite dans ce fichier : elle vit uniquement dans le localStorage de
+   l'appareil sur lequel elle est saisie (donc jamais publiée si ce fichier part sur GitHub).
+   L'appel se fait directement depuis le navigateur avec l'en-tête que l'API Anthropic prévoit
+   pour cet usage (anthropic-dangerous-direct-browser-access) — adapté à un panneau admin utilisé
+   par du personnel de confiance, pas à un usage public. */
+let aiState = { apiKey:'' };
+function loadAIState(){
+  try{ aiState = JSON.parse(storageGet('ema_ai_state') || '{}'); }catch(err){ aiState = {}; }
+  if(!aiState.apiKey) aiState.apiKey = '';
+}
+function saveAIState(){ storageSet('ema_ai_state', JSON.stringify(aiState)); }
+
+let customAIContent = { safety:[], words:[] };
+function loadCustomAIContent(){
+  try{ customAIContent = JSON.parse(storageGet('ema_ai_content') || '{}'); }catch(err){ customAIContent = {}; }
+  if(!Array.isArray(customAIContent.safety)) customAIContent.safety = [];
+  if(!Array.isArray(customAIContent.words)) customAIContent.words = [];
+}
+function saveCustomAIContent(){ storageSet('ema_ai_content', JSON.stringify(customAIContent)); }
+
+async function callClaudeAPI(system, userPrompt){
+  if(!aiState.apiKey) throw new Error('missing-key');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'content-type':'application/json',
+      'x-api-key': aiState.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body: JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:700,
+      system,
+      messages:[{ role:'user', content:userPrompt }],
+    }),
+  });
+  if(!res.ok){
+    const detail = await res.text().catch(() => '');
+    throw new Error('api-error: ' + res.status + ' ' + detail.slice(0,200));
+  }
+  const data = await res.json();
+  return (data.content || []).map(c => c.text || '').join('');
+}
+
+function extractJSON(text){
+  const cleaned = text.replace(/```json|```/g, '').trim();
+  try{ return JSON.parse(cleaned); }catch(err){}
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if(match){ try{ return JSON.parse(match[0]); }catch(err){} }
+  throw new Error('parse-error');
+}
+
+const AI_PROMPTS = {
+  safety: topic => ({
+    system: "You are a content assistant for a French-immersion preschool's digital signage app. Reply with STRICT JSON only — no markdown fences, no extra text.",
+    user: `Write one short, warm, reassuring bilingual safety reminder for parents/staff at a French-immersion preschool in Houston, Texas. Topic: ${topic || 'general classroom, arrival, or pickup safety'}. Each sentence under 100 characters. Return exactly: {"fr":"...","en":"..."}`,
+  }),
+  word: topic => ({
+    system: "You are a content assistant for a French-immersion preschool's digital signage app. Reply with STRICT JSON only — no markdown fences, no extra text.",
+    user: `Suggest one simple French vocabulary word appropriate to teach preschoolers aged 2-5, related to: ${topic || 'everyday preschool life or the current season'}. Return exactly: {"fr":"French word","en":"English translation","emoji":"single emoji"}`,
+  }),
+  icon: topic => ({
+    system: "You are an illustrator assistant for a French-immersion preschool's digital signage app. Reply with STRICT JSON only — no markdown fences, no extra text.",
+    user: `Design a simple flat icon as SVG representing: ${topic || 'something joyful and kid-friendly for a preschool'}. Requirements: viewBox="0 0 100 100"; outlines use stroke="#003B71" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none"; small filled accents may use #F76C5E, #FFCF57, #73C2E6 or #3FA796; center the design; at most 8 shapes; no text, no gradients, no external references or scripts. Return exactly: {"svg":"<svg ...>...</svg>"}`,
+  }),
+};
+
+let aiSelectedType = 'safety';
+const AI_TOPIC_PLACEHOLDER = {
+  safety: "Ex. « saison des ouragans », « allergies »...",
+  word:   "Ex. « l'automne », « les couleurs »...",
+  icon:   "Ex. « un parapluie », « une fusée »...",
+};
+
+async function generateAI(){
+  aiState.apiKey = $('#aiKeyInput').value.trim();
+  saveAIState();
+  if(!aiState.apiKey){
+    $('#aiResult').innerHTML = `<div class="ai-status error">Ajoutez d'abord votre clé API ci-dessus.</div>`;
+    return;
+  }
+  const topic = $('#aiTopicInput').value.trim();
+  $('#aiResult').innerHTML = `<div class="ai-status">Génération en cours…</div>`;
+  try{
+    const { system, user } = AI_PROMPTS[aiSelectedType](topic);
+    const data = extractJSON(await callClaudeAPI(system, user));
+    renderAIPreview(aiSelectedType, data);
+  }catch(err){
+    const msg = err.message === 'missing-key' ? "Clé API manquante."
+      : err.message === 'parse-error' ? "Réponse inattendue de l'IA, réessayez."
+      : "Erreur : vérifiez votre clé API et votre connexion internet.";
+    $('#aiResult').innerHTML = `<div class="ai-status error">${msg}</div>`;
+  }
+}
+
+function renderAIPreview(type, data){
+  let bodyHTML = '';
+  if(type === 'safety') bodyHTML = `<div class="fr">${data.fr}</div><div class="en">${data.en}</div>`;
+  else if(type === 'word') bodyHTML = `<div class="emoji">${data.emoji || ''}</div><div class="fr">${data.fr}</div><div class="en">${data.en}</div>`;
+  else bodyHTML = (data.svg || '') + `<div class="en">Sera ajouté sur l'écran actuellement affiché — vous pourrez le déplacer ensuite.</div>`;
+  $('#aiResult').innerHTML = `
+    <div class="ai-preview">${bodyHTML}</div>
+    <div class="ai-preview-actions">
+      <button class="admin-btn secondary" id="aiRedo">Régénérer</button>
+      <button class="admin-btn primary" id="aiAccept">Ajouter</button>
+    </div>`;
+  emojify($('#aiResult'));
+  $('#aiRedo').addEventListener('click', generateAI);
+  $('#aiAccept').addEventListener('click', () => acceptAIResult(type, data));
+}
+
+function acceptAIResult(type, data){
+  if(type === 'safety'){
+    customAIContent.safety.push({ fr:data.fr, en:data.en });
+    saveCustomAIContent();
+    rebuildAndRestart();
+  }else if(type === 'word'){
+    customAIContent.words.push({ fr:data.fr, en:data.en, emoji:data.emoji || '💬' });
+    saveCustomAIContent();
+    rebuildAndRestart();
+  }else if(type === 'icon' && data.svg){
+    const dataUri = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data.svg)));
+    addDecoration('image', dataUri);
+  }
+  $('#aiResult').innerHTML = `<div class="ai-status">Ajouté ! Vous pouvez fermer cette fenêtre.</div>`;
 }
 
 /* ---------- pages personnalisées (texte + photo, ajoutées sur place) ---------- */
@@ -2004,6 +2373,7 @@ function buildSlideList(){
     { key:'monthcal', decoKey:'monthcal', html: slideMonthCalendar() },
   ];
   upcomingCalendarEvents().forEach(ev => slides.push({ key:'calendar', decoKey:'calendar-' + ev.start, html: slideCalendarEvent(ev) }));
+  todaysWeeklyActivities().forEach(a => slides.push({ key:'weeklyActivity', decoKey:'weekly-' + a.weekday, html: slideWeeklyActivity(a) }));
   const bdays = todaysBirthdays();
   if(bdays.length) slides.push({ key:'birthday', decoKey:'birthday', html: slideBirthday(bdays) });
   slides.push({ key:'safety', decoKey:'safety', html: slideSafety() });
@@ -2146,6 +2516,27 @@ $('#decoImageInput').addEventListener('change', async () => {
 $('#admDecorate').addEventListener('click', () => { closeAdmin(); startDecoEditing(); });
 $('#decoDone').addEventListener('click', stopDecoEditing);
 
+$('#admOpenAI').addEventListener('click', () => {
+  closeAdmin();
+  $('#aiKeyInput').value = aiState.apiKey || '';
+  $('#aiTopicInput').value = '';
+  $('#aiResult').innerHTML = '';
+  $('#aiModal').classList.add('open');
+});
+$('#aiCancel').addEventListener('click', () => $('#aiModal').classList.remove('open'));
+$('#aiModal').addEventListener('click', e => { if(e.target.id === 'aiModal') $('#aiModal').classList.remove('open'); });
+$('#aiKeyInput').addEventListener('change', () => { aiState.apiKey = $('#aiKeyInput').value.trim(); saveAIState(); });
+$('#aiGenerate').addEventListener('click', generateAI);
+document.querySelectorAll('.ai-type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ai-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    aiSelectedType = btn.dataset.type;
+    $('#aiTopicInput').placeholder = AI_TOPIC_PLACEHOLDER[aiSelectedType];
+    $('#aiResult').innerHTML = '';
+  });
+});
+
 /* ---------- accès au panneau "Ajouter une page" : 5 taps sur le logo en 3s ---------- */
 let adminTapCount = 0, adminTapTimer = null;
 $('.mark').addEventListener('click', (e) => {
@@ -2219,12 +2610,18 @@ fetchAllSports();
 setInterval(fetchAllSports, CONFIG.SPORTS_REFRESH_MINUTES * 60000);
 loadCustomPages();
 loadPageDecorations();
+loadAIState();
+loadCustomAIContent();
 rebuildAndRestart(); // démarre tout de suite avec les données de secours
 emojify(document.getElementById('adminModal')); // libellés statiques du panneau admin (🖼️ 🎨…)
+emojify(document.getElementById('aiModal'));
 rafId = requestAnimationFrame(tickProgress);
 
 refreshBirthdays(); // puis se met à jour dès que le Google Sheets répond
 setInterval(refreshBirthdays, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
+
+fetchDailyAIContent(); // récupère le mot du jour / thème sécurité généré cette nuit par n8n
+setInterval(fetchDailyAIContent, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
 </script>
 </body>
 </html>
