@@ -237,6 +237,21 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
   100%{transform:rotate(360deg) translateY(0)}
 }
 
+/* ---------- menu du déjeuner (Simply Fresh) : logo + plat du jour (texte exact) ---------- */
+.menu-logo{
+  flex:0 0 auto; height:clamp(56px,4.6vw + 4.6vh,96px); width:auto; max-width:60vw; object-fit:contain;
+  background:#fff; border-radius:18px; padding:10px 18px; box-shadow:0 8px 20px rgba(0,32,64,.14);
+}
+.menu-dish{
+  font-family:'Mitr',sans-serif; font-weight:600; color:var(--ink); line-height:1.4;
+  font-size:clamp(20px,1.3vw + 1.6vh,36px); max-width:min(920px,86vw);
+}
+.menu-veg{
+  display:inline-flex; align-items:center; gap:8px; background:var(--cat-tint,#EAF7F4); color:var(--green);
+  font-weight:800; font-size:clamp(14px,.9vw + .7vh,19px); padding:10px 24px; border-radius:999px;
+  max-width:min(920px,86vw); text-align:center;
+}
+
 .headline{font-family:'Mitr',sans-serif; font-weight:600; font-size:clamp(32px,2.6vw + 3.2vh,68px); color:var(--ink); line-height:1.14}
 .headline .en{display:block; font-size:.56em; color:var(--ink-faint); font-weight:700; margin-top:10px}
 
@@ -738,7 +753,7 @@ const CONFIG = {
      Marche à suivre (une fois) :
      1. Créez un Google Sheets avec un onglet "Anniversaires" —
         colonnes : Nom | Date (AAAA-MM-JJ)
-          Les enfants sont entrés normalement ("Emma L."). Le personnel
+          Les enfants sont entrés normalemennt ("Emma L."). Le personnel
           est entré avec "Miss" devant le prénom ("Miss Laurie") : l'écran
           reconnaît automatiquement "Miss…" comme personnel et n'affiche
           pas son âge (l'âge des enfants est calculé depuis leur date).
@@ -749,7 +764,7 @@ const CONFIG = {
      démonstration (FALLBACK_BIRTHDAYS) plus bas.
      -------------------------------------------------------------- */
   DATA_SOURCES: {
-    BIRTHDAYS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGm_ha1hMoy_m-JazsQzcigQcHJCIaiuzla3leInLthOWnJBzeawpSPZCk6OzhHsr10gYiCbXR89YJ/pub?gid=1569464562&single=true&output=csv",
+    BIRTHDAYS_CSV_URL: "https://docs.google.com/spreadsheets/d/1-qZQ5_wXkpZuSkduYcB8g2vPhp1O82f14ztZ3C76soo/edit?usp=drive_link",
     REFRESH_MINUTES: 15,
 
     /* --------------------------------------------------------------
@@ -977,6 +992,37 @@ const CONFIG = {
     { weekday:4, en:"The Jolly Trolley",  fr:"The Jolly Trolley",  logo:"logo-jolly-trolley.jpg", theme:"gymnastics" },
   ],
 
+  /* --------------------------------------------------------------
+     MENU DU DÉJEUNER (Simply Fresh) — le menu est un Google Sheets,
+     un fichier par mois (converti depuis le PDF que fournit le
+     prestataire — un tableau : une colonne par jour de semaine, une
+     ligne de dates suivie d'une ligne de plats, par semaine). L'écran
+     lit directement le texte du plat du jour, pas besoin d'image ni
+     de recadrage.
+     Marche à suivre chaque mois :
+     1. Convertissez le PDF du mois en Google Sheets (ouvrez le PDF
+        dans Google Drive > "Ouvrir avec" > Google Sheets, ou
+        importez-le depuis Google Sheets > Fichier > Importer).
+        Vérifiez qu'il est partagé "Tout le monde avec le lien".
+     2. Clic droit sur le fichier > Partager > Copier le lien. Le
+        lien ressemble à :
+        https://docs.google.com/spreadsheets/d/CECI_EST_L_ID/edit?usp=sharing
+        Copiez uniquement la partie CECI_EST_L_ID.
+     3. Ajoutez une ligne ci-dessous, avec le numéro du mois
+        (1=janvier … 12=décembre).
+     Tant qu'aucun identifiant n'est renseigné pour le mois en cours
+     (ou le week-end, ou un jour sans menu publié), cet écran ne
+     s'affiche tout simplement pas — rien de cassé si un mois est
+     oublié.
+     -------------------------------------------------------------- */
+  MENU: {
+    LOGO: "logo-simply-fresh.png",
+    CSV_FILE_ID_BY_MONTH: {
+      9:  "1fbchlKe8sAiqkKAmVd9nktNx6DX5BPS45LsBAFjRyZ4", // septembre
+      10: "1HAW6bJyR7Rr34Tltm74QvuFGawkry267tG87ChdpEAw", // octobre
+    },
+  },
+
   // Annonces libres (facultatif) — laissez [] pour n'en afficher aucune
   ANNOUNCEMENTS: [
     // { fr:"Portes ouvertes le 12 septembre !", en:"Open house on September 12th!", emoji:"🎉" },
@@ -1039,6 +1085,7 @@ function catIcon(type){
     announce: `<svg viewBox="0 0 100 100"><path d="M14 38v22l18 4v9a6 6 0 0 0 12 0v-6l40 9V25z" ${S}/><path d="M40 73a10 10 0 0 0 10 10" ${S}/></svg>`,
     photo: `<svg viewBox="0 0 100 100"><rect x="13" y="25" width="74" height="55" rx="8" ${S}/><circle cx="35" cy="45" r="8" ${S}/><path d="M13 68l19-15 17 12 13-9 25 17" ${S}/></svg>`,
     sports: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" ${S}/><path d="M50 12v76M12 50h76" ${S}/><path d="M22 24c10 10 10 42 0 52M78 24c-10 10-10 42 0 52" ${S}/></svg>`,
+    menu: `<svg viewBox="0 0 100 100"><path d="M32 10v28a6 6 0 0 0 12 0V10M38 10v80" ${S}/><path d="M70 10c-13 6-13 28 0 32v48" ${S}/></svg>`,
   };
   return icons[type] || icons.calendar;
 }
@@ -1628,6 +1675,66 @@ function slideWeeklyActivity(activity){
         ${activityFigureHTML(activity, 'right')}
       </div>
       <div class="headline">${activity.en}<span class="en">${activity.fr}</span></div>
+    </div>`);
+}
+
+/* --------------------------------------------------------------
+   Le menu du déjeuner est un Google Sheets par mois (converti depuis
+   le PDF Simply Fresh) : un tableau avec une ligne de dates
+   ("10-Sep") suivie d'une ligne de plats, une fois par semaine. On
+   lit le CSV publié du mois, on repère la case dont la date
+   correspond à aujourd'hui, et on prend le texte juste en dessous
+   (même colonne, ligne suivante) — texte exact, aucune image à
+   recadrer.
+   -------------------------------------------------------------- */
+const MENU_MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let dailyMenu = null; // { dish, veg } une fois trouvé, sinon null (écran masqué)
+
+// isole le plat principal et l'option végétarienne ("V-...") dans le texte multi-lignes
+// d'une case ; les cases sans menu publié ne contiennent qu'un "0" (artefact de la
+// conversion Excel), qu'on filtre comme du bruit plutôt que comme un vrai plat
+function parseMenuCell(text){
+  if(!text) return null;
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l && l !== '0');
+  if(!lines.length) return null;
+  const vegIdx = lines.findIndex(l => /^V[- ]/i.test(l));
+  const dishLines = vegIdx === -1 ? lines : lines.slice(0, vegIdx);
+  const vegLines = vegIdx === -1 ? [] : lines.slice(vegIdx);
+  const dish = dishLines.join(' ').replace(/,\s*$/, '').trim();
+  if(!dish) return null;
+  return { dish, veg: vegLines.join(' ').trim() };
+}
+
+async function fetchDailyMenu(){
+  const now = new Date();
+  const dow = now.getDay(); // 0=dimanche … 6=samedi
+  const fileId = CONFIG.MENU && CONFIG.MENU.CSV_FILE_ID_BY_MONTH[now.getMonth() + 1];
+  if(!fileId || dow === 0 || dow === 6){ dailyMenu = null; return; }
+  try{
+    const url = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&cachebust=${Date.now()}`;
+    const res = await fetch(url);
+    const rows = parseCSV(await res.text());
+    const todayLabel = `${now.getDate()}-${MENU_MONTH_ABBR[now.getMonth()]}`;
+    let found = null;
+    for(let r = 0; r < rows.length - 1 && !found; r++){
+      const colIdx = rows[r].findIndex(cell => (cell || '').trim() === todayLabel);
+      if(colIdx !== -1) found = parseMenuCell(rows[r + 1][colIdx]);
+    }
+    dailyMenu = found;
+  }catch(err){
+    dailyMenu = null; // pas grave : la diapositive "menu" ne s'affiche simplement pas ce jour-là
+  }
+}
+
+function slideMenu(){
+  const m = dailyMenu;
+  return catWrap('cat-green', `
+    ${eyebrowHTML('menu', 'Lunch Menu', 'Menu du déjeuner')}
+    <div class="slide-body" style="flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:clamp(18px,2.6vh,32px)">
+      <img class="menu-logo" src="${CONFIG.MENU.LOGO}" alt="Simply Fresh">
+      <div class="menu-dish">${m.dish}</div>
+      ${m.veg ? `<div class="menu-veg">🌱 ${m.veg}</div>` : ''}
     </div>`);
 }
 
@@ -2374,6 +2481,7 @@ function buildSlideList(){
   ];
   upcomingCalendarEvents().forEach(ev => slides.push({ key:'calendar', decoKey:'calendar-' + ev.start, html: slideCalendarEvent(ev) }));
   todaysWeeklyActivities().forEach(a => slides.push({ key:'weeklyActivity', decoKey:'weekly-' + a.weekday, html: slideWeeklyActivity(a) }));
+  if(dailyMenu) slides.push({ key:'menu', decoKey:'menu', html: slideMenu() });
   const bdays = todaysBirthdays();
   if(bdays.length) slides.push({ key:'birthday', decoKey:'birthday', html: slideBirthday(bdays) });
   slides.push({ key:'safety', decoKey:'safety', html: slideSafety() });
@@ -2412,6 +2520,7 @@ function renderIfActive(key){
   if(key==='datetime') slides[idx].html = slideDateTime();
   if(key==='birthday') slides[idx].html = slideBirthday(todaysBirthdays());
   if(key==='sports') slides[idx].html = slideSports();
+  if(key==='menu') slides[idx].html = slideMenu();
   const card = document.querySelector(`.card[data-i="${idx}"]`);
   if(card){
     // on garde le conteneur de décors : un innerHTML brut l'effacerait sinon
@@ -2622,6 +2731,18 @@ setInterval(refreshBirthdays, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
 
 fetchDailyAIContent(); // récupère le mot du jour / thème sécurité généré cette nuit par n8n
 setInterval(fetchDailyAIContent, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
+
+async function refreshDailyMenu(){
+  const had = !!dailyMenu;
+  await fetchDailyMenu();
+  if(!!dailyMenu !== had){
+    rebuildAndRestart(); // la diapositive doit apparaître/disparaître
+  }else{
+    renderIfActive('menu');
+  }
+}
+refreshDailyMenu();
+setInterval(refreshDailyMenu, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
 </script>
 </body>
 </html>
