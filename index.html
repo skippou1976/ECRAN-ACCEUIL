@@ -329,6 +329,25 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
 }
 .month-cal-bday-name .en{color:var(--ink-faint); font-weight:700}
 
+/* variantes plus compactes quand un mois compte beaucoup d'évènements/anniversaires,
+   pour que tout reste visible plutôt que d'être coupé en bas de la liste (overflow:hidden) */
+.month-cal-events.dense, .month-cal-birthdays.dense{gap:clamp(2px,.4vh,4px)}
+.month-cal-events.dense .month-cal-event, .month-cal-birthdays.dense .month-cal-bday{
+  padding:clamp(3px,.5vh,6px) clamp(8px,1.1vw,12px);
+}
+.month-cal-events.dense .month-cal-event-day, .month-cal-events.dense .month-cal-event-name,
+.month-cal-birthdays.dense .month-cal-bday-day, .month-cal-birthdays.dense .month-cal-bday-name{
+  font-size:clamp(11px,.7vw + .55vh,15px);
+}
+.month-cal-events.ultra-dense, .month-cal-birthdays.ultra-dense{gap:clamp(1px,.2vh,2px)}
+.month-cal-events.ultra-dense .month-cal-event, .month-cal-birthdays.ultra-dense .month-cal-bday{
+  padding:clamp(2px,.35vh,3px) clamp(6px,.9vw,10px);
+}
+.month-cal-events.ultra-dense .month-cal-event-day, .month-cal-events.ultra-dense .month-cal-event-name,
+.month-cal-birthdays.ultra-dense .month-cal-bday-day, .month-cal-birthdays.ultra-dense .month-cal-bday-name{
+  font-size:clamp(9px,.55vw + .4vh,12px);
+}
+
 /* ---------- écran Sports (v4) ---------- */
 .sports-grid{width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(14px,2vw,28px)}
 .sports-team{
@@ -797,7 +816,7 @@ const CONFIG = {
      démonstration (FALLBACK_BIRTHDAYS) plus bas.
      -------------------------------------------------------------- */
   DATA_SOURCES: {
-    BIRTHDAYS_CSV_URL: "",
+    BIRTHDAYS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGm_ha1hMoy_m-JazsQzcigQcHJCIaiuzla3leInLthOWnJBzeawpSPZCk6OzhHsr10gYiCbXR89YJ/pub?gid=1569464562&single=true&output=csv",
     REFRESH_MINUTES: 15,
 
     /* --------------------------------------------------------------
@@ -1389,6 +1408,20 @@ function ageFromDate(dateStr){
   return new Date().getFullYear() - parseInt(dateStr.slice(0,4), 10);
 }
 
+// accepte soit "AAAA-MM-JJ" (déjà au bon format), soit "M/J/AAAA" — le format que
+// Google Sheets applique par défaut aux dates saisies normalement (ex. "4/7/2026") —
+// et renvoie toujours "AAAA-MM-JJ", ou null si le texte n'est pas une date reconnue
+function normalizeBirthdayDate(raw){
+  raw = (raw || '').trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){
+    const [, mo, d, y] = m;
+    return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  return null;
+}
+
 let birthdaysData = CONFIG.FALLBACK_BIRTHDAYS;
 
 async function fetchBirthdays(){
@@ -1399,8 +1432,8 @@ async function fetchBirthdays(){
     const rows = parseCSV(await res.text()).filter(r => r.length && (r[0]||'').trim());
     const list = rows.slice(1).map(r => ({
       name: (r[0]||'').trim(),
-      date: (r[1]||'').trim(),
-    })).filter(b => b.name && /^\d{4}-\d{2}-\d{2}$/.test(b.date));
+      date: normalizeBirthdayDate(r[1]),
+    })).filter(b => b.name && b.date);
     if(list.length){ birthdaysData = list; storageSet('ema_birthdays', JSON.stringify(list)); }
   }catch(err){
     const cached = storageGet('ema_birthdays');
@@ -1884,6 +1917,10 @@ function slideMonthCalendar(){
     </div>`;
   }).join('');
 
+  // au-delà de 5 lignes une liste commence à manquer de place dans sa boîte (overflow:hidden) :
+  // on resserre l'espacement/la police plutôt que de couper silencieusement les derniers noms
+  const densityClass = n => n > 8 ? ' ultra-dense' : n > 5 ? ' dense' : '';
+
   return catWrap('cat-blue', `
     ${eyebrowHTML('calendar', monthEn, monthFr)}
     <div class="slide-body" style="flex-direction:column; align-items:stretch; justify-content:stretch">
@@ -1893,11 +1930,11 @@ function slideMonthCalendar(){
         <div class="month-cal-lists">
           <div class="month-cal-col">
             <div class="month-cal-col-title">Events this month <span class="en">· Évènements du mois</span></div>
-            ${eventRows ? `<div class="month-cal-events">${eventRows}</div>` : `<div class="month-cal-col-empty">No events · Aucun évènement</div>`}
+            ${eventRows ? `<div class="month-cal-events${densityClass(monthEvents.length)}">${eventRows}</div>` : `<div class="month-cal-col-empty">No events · Aucun évènement</div>`}
           </div>
           <div class="month-cal-col">
             <div class="month-cal-col-title">Birthdays this month <span class="en">· Anniversaires du mois</span></div>
-            ${bdayRows ? `<div class="month-cal-birthdays">${bdayRows}</div>` : `<div class="month-cal-col-empty">No birthdays · Aucun anniversaire</div>`}
+            ${bdayRows ? `<div class="month-cal-birthdays${densityClass(monthBirthdays.length)}">${bdayRows}</div>` : `<div class="month-cal-col-empty">No birthdays · Aucun anniversaire</div>`}
           </div>
         </div>
       </div>
