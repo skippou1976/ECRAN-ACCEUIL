@@ -272,11 +272,20 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
   background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.2); padding:1.5px;
 }
 
-/* liste des évènements du mois : nom + date, sous la grille */
-.month-cal-events{
-  flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;
-  gap:clamp(4px,.8vh,8px); padding-top:clamp(2px,.6vh,6px);
+/* liste des évènements du mois (+ anniversaires du mois) sous la grille, en deux colonnes */
+.month-cal-lists{
+  flex:1; min-height:0; display:grid; grid-template-columns:1.4fr 1fr;
+  gap:clamp(10px,1.6vw,22px); padding-top:clamp(2px,.6vh,6px);
 }
+.month-cal-col{display:flex; flex-direction:column; min-height:0}
+.month-cal-col-title{
+  flex:0 0 auto; font-weight:900; font-size:clamp(10px,.7vw + .4vh,13px); color:var(--ink-faint);
+  text-transform:uppercase; letter-spacing:.05em; margin-bottom:clamp(4px,.7vh,8px);
+}
+.month-cal-col-title .en{opacity:.75}
+.month-cal-col-empty{font-weight:700; font-size:clamp(12px,.8vw + .5vh,15px); color:var(--ink-faint)}
+
+.month-cal-events{flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:clamp(4px,.8vh,8px)}
 .month-cal-event{
   flex:0 0 auto; display:flex; align-items:center; gap:clamp(10px,1.2vw,16px);
   background:rgba(255,255,255,.55); border-left:5px solid var(--ev-color,var(--ink-faint));
@@ -297,6 +306,28 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
   text-transform:uppercase; letter-spacing:.04em; display:none;
 }
 @media (min-width:1100px){ .month-cal-event-type{display:block} }
+
+/* liste des anniversaires du mois — même gabarit que les évènements, teinte "cake" */
+.month-cal-birthdays{flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:clamp(4px,.8vh,8px)}
+.month-cal-bday{
+  flex:0 0 auto; display:flex; align-items:center; gap:clamp(8px,1vw,14px);
+  background:rgba(255,255,255,.55); border-left:5px solid var(--pink);
+  border-radius:10px; padding:clamp(6px,.9vh,10px) clamp(10px,1.4vw,16px);
+}
+.month-cal-bday.today-bday{background:var(--pink); box-shadow:0 6px 16px rgba(0,32,64,.18)}
+.month-cal-bday.today-bday .month-cal-bday-day,
+.month-cal-bday.today-bday .month-cal-bday-name,
+.month-cal-bday.today-bday .month-cal-bday-name .en{color:#fff}
+.month-cal-bday-day{
+  flex:0 0 auto; min-width:2.2em; text-align:center; font-weight:900;
+  font-size:clamp(13px,.85vw + .7vh,18px); color:var(--pink);
+}
+.month-cal-bday-icon{flex:0 0 auto; font-size:clamp(14px,.9vw + .7vh,20px); line-height:1}
+.month-cal-bday-name{
+  flex:1; min-width:0; font-weight:800; font-size:clamp(13px,.85vw + .7vh,18px); color:var(--ink);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.month-cal-bday-name .en{color:var(--ink-faint); font-weight:700}
 
 /* ---------- écran Sports (v4) ---------- */
 .sports-grid{width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(14px,2vw,28px)}
@@ -336,6 +367,21 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
 }
 .birthday-pill .role{font-size:.6em; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; font-weight:800}
 
+/* ---------- menu du déjeuner (Simply Fresh) : logo + plat du jour (texte exact) ---------- */
+.menu-logo{
+  flex:0 0 auto; height:clamp(56px,4.6vw + 4.6vh,96px); width:auto; max-width:60vw; object-fit:contain;
+  background:#fff; border-radius:18px; padding:10px 18px; box-shadow:0 8px 20px rgba(0,32,64,.14);
+}
+.menu-dish{
+  font-family:'Mitr',sans-serif; font-weight:600; color:var(--ink); line-height:1.4;
+  font-size:clamp(20px,1.3vw + 1.6vh,36px); max-width:min(920px,86vw);
+}
+.menu-veg{
+  display:inline-flex; align-items:center; gap:8px; background:var(--cat-tint,#EAF7F4); color:var(--green);
+  font-weight:800; font-size:clamp(14px,.9vw + .7vh,19px); padding:10px 24px; border-radius:999px;
+  max-width:min(920px,86vw); text-align:center;
+}
+
 .word-card{display:flex; flex-direction:column; align-items:center; gap:8px}
 .word-fr{font-family:'Mitr',sans-serif; font-weight:700; font-size:clamp(60px,5.6vw + 7.4vh,158px); color:var(--pink)}
 .word-en{font-weight:800; font-size:clamp(26px,1.8vw + 2.4vh,48px); color:var(--ink-soft)}
@@ -349,6 +395,8 @@ footer{flex:0 0 auto; padding:0 clamp(20px,3vw,44px) clamp(16px,2.4vh,28px); dis
 .radar-wrap{position:relative; min-width:0; min-height:0; border-radius:28px; overflow:hidden; background:#EAF4FB; opacity:0; transition:opacity .35s ease}
 .radar-wrap.ready{opacity:1}
 .radar-map{position:absolute; inset:0}
+.radar-wrap .leaflet-control-attribution{background:rgba(255,255,255,.55); font-size:9px; line-height:1.3; padding:1px 6px; border-radius:6px 0 0 0; color:var(--ink-faint,#7a8a9a)}
+.radar-wrap .leaflet-control-attribution a{color:inherit}
 .radar-live{
   position:absolute; top:14px; right:14px; z-index:500; display:flex; align-items:center; gap:8px;
   background:#fff; padding:8px 18px; border-radius:999px; font-weight:800; font-size:clamp(12px,1vw,14px);
@@ -749,7 +797,7 @@ const CONFIG = {
      démonstration (FALLBACK_BIRTHDAYS) plus bas.
      -------------------------------------------------------------- */
   DATA_SOURCES: {
-    BIRTHDAYS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGm_ha1hMoy_m-JazsQzcigQcHJCIaiuzla3leInLthOWnJBzeawpSPZCk6OzhHsr10gYiCbXR89YJ/pubhtml?gid=1569464562&single=true",
+    BIRTHDAYS_CSV_URL: "",
     REFRESH_MINUTES: 15,
 
     /* --------------------------------------------------------------
@@ -977,6 +1025,37 @@ const CONFIG = {
     { weekday:4, en:"The Jolly Trolley",  fr:"The Jolly Trolley",  logo:"logo-jolly-trolley.jpg", theme:"gymnastics" },
   ],
 
+  /* --------------------------------------------------------------
+     MENU DU DÉJEUNER (Simply Fresh) — le menu est un Google Sheets,
+     un fichier par mois (converti depuis le PDF que fournit le
+     prestataire — un tableau : une colonne par jour de semaine, une
+     ligne de dates suivie d'une ligne de plats, par semaine). L'écran
+     lit directement le texte du plat du jour, pas besoin d'image ni
+     de recadrage.
+     Marche à suivre chaque mois :
+     1. Convertissez le PDF du mois en Google Sheets (ouvrez le PDF
+        dans Google Drive > "Ouvrir avec" > Google Sheets, ou
+        importez-le depuis Google Sheets > Fichier > Importer).
+        Vérifiez qu'il est partagé "Tout le monde avec le lien".
+     2. Clic droit sur le fichier > Partager > Copier le lien. Le
+        lien ressemble à :
+        https://docs.google.com/spreadsheets/d/CECI_EST_L_ID/edit?usp=sharing
+        Copiez uniquement la partie CECI_EST_L_ID.
+     3. Ajoutez une ligne ci-dessous, avec le numéro du mois
+        (1=janvier … 12=décembre).
+     Tant qu'aucun identifiant n'est renseigné pour le mois en cours
+     (ou le week-end, ou un jour sans menu publié), cet écran ne
+     s'affiche tout simplement pas — rien de cassé si un mois est
+     oublié.
+     -------------------------------------------------------------- */
+  MENU: {
+    LOGO: "logo-simply-fresh.png",
+    CSV_FILE_ID_BY_MONTH: {
+      9:  "1fbchlKe8sAiqkKAmVd9nktNx6DX5BPS45LsBAFjRyZ4", // septembre
+      10: "1HAW6bJyR7Rr34Tltm74QvuFGawkry267tG87ChdpEAw", // octobre
+    },
+  },
+
   // Annonces libres (facultatif) — laissez [] pour n'en afficher aucune
   ANNOUNCEMENTS: [
     // { fr:"Portes ouvertes le 12 septembre !", en:"Open house on September 12th!", emoji:"🎉" },
@@ -1039,6 +1118,7 @@ function catIcon(type){
     announce: `<svg viewBox="0 0 100 100"><path d="M14 38v22l18 4v9a6 6 0 0 0 12 0v-6l40 9V25z" ${S}/><path d="M40 73a10 10 0 0 0 10 10" ${S}/></svg>`,
     photo: `<svg viewBox="0 0 100 100"><rect x="13" y="25" width="74" height="55" rx="8" ${S}/><circle cx="35" cy="45" r="8" ${S}/><path d="M13 68l19-15 17 12 13-9 25 17" ${S}/></svg>`,
     sports: `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" ${S}/><path d="M50 12v76M12 50h76" ${S}/><path d="M22 24c10 10 10 42 0 52M78 24c-10 10-10 42 0 52" ${S}/></svg>`,
+    menu: `<svg viewBox="0 0 100 100"><path d="M32 10v28a6 6 0 0 0 12 0V10M38 10v80" ${S}/><path d="M70 10c-13 6-13 28 0 32v48" ${S}/></svg>`,
   };
   return icons[type] || icons.calendar;
 }
@@ -1225,13 +1305,14 @@ function initRadarMap(){
   if(!container) return;
   const { LAT, LON, RADAR_ZOOM } = CONFIG.WEATHER;
   radarMap = L.map(container, {
-    zoomControl:false, attributionControl:false, dragging:false,
+    zoomControl:false, dragging:false,
     scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false,
     keyboard:false, touchZoom:false, tap:false,
   }).setView([LAT, LON], RADAR_ZOOM);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    subdomains:'abc', maxZoom:12,
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom:19,
+    attribution:'Tiles &copy; Esri \u2014 Source: Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, &copy; OpenStreetMap contributors, and the GIS User Community',
   }).addTo(radarMap);
 
   L.marker([LAT, LON], {
@@ -1631,6 +1712,66 @@ function slideWeeklyActivity(activity){
     </div>`);
 }
 
+/* --------------------------------------------------------------
+   Le menu du déjeuner est un Google Sheets par mois (converti depuis
+   le PDF Simply Fresh) : un tableau avec une ligne de dates
+   ("10-Sep") suivie d'une ligne de plats, une fois par semaine. On
+   lit le CSV publié du mois, on repère la case dont la date
+   correspond à aujourd'hui, et on prend le texte juste en dessous
+   (même colonne, ligne suivante) — texte exact, aucune image à
+   recadrer.
+   -------------------------------------------------------------- */
+const MENU_MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+let dailyMenu = null; // { dish, veg } une fois trouvé, sinon null (écran masqué)
+
+// isole le plat principal et l'option végétarienne ("V-...") dans le texte multi-lignes
+// d'une case ; les cases sans menu publié ne contiennent qu'un "0" (artefact de la
+// conversion Excel), qu'on filtre comme du bruit plutôt que comme un vrai plat
+function parseMenuCell(text){
+  if(!text) return null;
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l && l !== '0');
+  if(!lines.length) return null;
+  const vegIdx = lines.findIndex(l => /^V[- ]/i.test(l));
+  const dishLines = vegIdx === -1 ? lines : lines.slice(0, vegIdx);
+  const vegLines = vegIdx === -1 ? [] : lines.slice(vegIdx);
+  const dish = dishLines.join(' ').replace(/,\s*$/, '').trim();
+  if(!dish) return null;
+  return { dish, veg: vegLines.join(' ').trim() };
+}
+
+async function fetchDailyMenu(){
+  const now = new Date();
+  const dow = now.getDay(); // 0=dimanche … 6=samedi
+  const fileId = CONFIG.MENU && CONFIG.MENU.CSV_FILE_ID_BY_MONTH[now.getMonth() + 1];
+  if(!fileId || dow === 0 || dow === 6){ dailyMenu = null; return; }
+  try{
+    const url = `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv&cachebust=${Date.now()}`;
+    const res = await fetch(url);
+    const rows = parseCSV(await res.text());
+    const todayLabel = `${now.getDate()}-${MENU_MONTH_ABBR[now.getMonth()]}`;
+    let found = null;
+    for(let r = 0; r < rows.length - 1 && !found; r++){
+      const colIdx = rows[r].findIndex(cell => (cell || '').trim() === todayLabel);
+      if(colIdx !== -1) found = parseMenuCell(rows[r + 1][colIdx]);
+    }
+    dailyMenu = found;
+  }catch(err){
+    dailyMenu = null; // pas grave : la diapositive "menu" ne s'affiche simplement pas ce jour-là
+  }
+}
+
+function slideMenu(){
+  const m = dailyMenu;
+  return catWrap('cat-green', `
+    ${eyebrowHTML('menu', 'Lunch Menu', 'Menu du déjeuner')}
+    <div class="slide-body" style="flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:clamp(18px,2.6vh,32px)">
+      <img class="menu-logo" src="${CONFIG.MENU.LOGO}" alt="Simply Fresh">
+      <div class="menu-dish">${m.dish}</div>
+      ${m.veg ? `<div class="menu-veg">🌱 ${m.veg}</div>` : ''}
+    </div>`);
+}
+
 // une couleur par type d'événement, reprise comme liseré sur chaque ligne de la liste
 const CALENDAR_TYPE_COLOR = {
   closed:     'var(--pink)',
@@ -1655,6 +1796,16 @@ function weeklyActivitiesOnISODate(iso){
 function todaysWeeklyActivities(){
   const dow = new Date().getDay();
   return (CONFIG.WEEKLY_ACTIVITIES || []).filter(a => a.weekday === dow);
+}
+
+// anniversaires (élèves + personnel) qui tombent dans le mois donné, triés par jour —
+// b.date est une vraie date de naissance "AAAA-MM-JJ", on ne compare que mois/jour
+// pour que ça se répète chaque année
+function birthdaysInMonth(year, month){
+  const mm = pad(month + 1);
+  return birthdaysData
+    .filter(b => b.date.slice(5,7) === mm)
+    .sort((a,b) => a.date.slice(8,10).localeCompare(b.date.slice(8,10)));
 }
 
 // évènements dont une partie au moins tombe dans le mois donné (utile pour ceux à cheval
@@ -1720,13 +1871,35 @@ function slideMonthCalendar(){
     </div>`;
   }).join('');
 
+  const monthBirthdays = birthdaysInMonth(year, month);
+  const bdayRows = monthBirthdays.map(b => {
+    const day = parseInt(b.date.slice(8,10), 10);
+    const staff = isStaff(b.name);
+    const age = staff ? '' : ` <span class="en">· ${ageFromDate(b.date)}</span>`;
+    return `
+    <div class="month-cal-bday${day === todayNum ? ' today-bday' : ''}">
+      <span class="month-cal-bday-day">${day}</span>
+      <span class="month-cal-bday-icon">🎈</span>
+      <span class="month-cal-bday-name">${b.name}${age}</span>
+    </div>`;
+  }).join('');
+
   return catWrap('cat-blue', `
     ${eyebrowHTML('calendar', monthEn, monthFr)}
     <div class="slide-body" style="flex-direction:column; align-items:stretch; justify-content:stretch">
       <div class="month-cal">
         <div class="month-cal-head">${dowLabels.map(l => `<span>${l}</span>`).join('')}</div>
         <div class="month-cal-grid">${cells}</div>
-        ${eventRows ? `<div class="month-cal-events">${eventRows}</div>` : ''}
+        <div class="month-cal-lists">
+          <div class="month-cal-col">
+            <div class="month-cal-col-title">Events this month <span class="en">· Évènements du mois</span></div>
+            ${eventRows ? `<div class="month-cal-events">${eventRows}</div>` : `<div class="month-cal-col-empty">No events · Aucun évènement</div>`}
+          </div>
+          <div class="month-cal-col">
+            <div class="month-cal-col-title">Birthdays this month <span class="en">· Anniversaires du mois</span></div>
+            ${bdayRows ? `<div class="month-cal-birthdays">${bdayRows}</div>` : `<div class="month-cal-col-empty">No birthdays · Aucun anniversaire</div>`}
+          </div>
+        </div>
       </div>
     </div>`);
 }
@@ -2043,7 +2216,7 @@ function addDecoration(kind, content){
 
 // libellé lisible pour chaque écran, afin de choisir manuellement la page à décorer
 function slideLabel(s){
-  const names = { datetime:"Date & heure", weather:"Météo & radar", monthcal:"Calendrier du mois", birthday:"Anniversaire", safety:"Sécurité", word:"Mot du jour", sports:"Sports" };
+  const names = { datetime:"Date & heure", weather:"Météo & radar", monthcal:"Calendrier du mois", birthday:"Anniversaire", safety:"Sécurité", word:"Mot du jour", sports:"Sports", menu:"Menu du déjeuner" };
   if(names[s.key]) return names[s.key];
   if(s.key === 'calendar'){
     const ev = CONFIG.SCHOOL_CALENDAR.find(e => 'calendar-' + e.start === s.decoKey);
@@ -2374,6 +2547,7 @@ function buildSlideList(){
   ];
   upcomingCalendarEvents().forEach(ev => slides.push({ key:'calendar', decoKey:'calendar-' + ev.start, html: slideCalendarEvent(ev) }));
   todaysWeeklyActivities().forEach(a => slides.push({ key:'weeklyActivity', decoKey:'weekly-' + a.weekday, html: slideWeeklyActivity(a) }));
+  if(dailyMenu) slides.push({ key:'menu', decoKey:'menu', html: slideMenu() });
   const bdays = todaysBirthdays();
   if(bdays.length) slides.push({ key:'birthday', decoKey:'birthday', html: slideBirthday(bdays) });
   slides.push({ key:'safety', decoKey:'safety', html: slideSafety() });
@@ -2412,6 +2586,7 @@ function renderIfActive(key){
   if(key==='datetime') slides[idx].html = slideDateTime();
   if(key==='birthday') slides[idx].html = slideBirthday(todaysBirthdays());
   if(key==='sports') slides[idx].html = slideSports();
+  if(key==='menu') slides[idx].html = slideMenu();
   const card = document.querySelector(`.card[data-i="${idx}"]`);
   if(card){
     // on garde le conteneur de décors : un innerHTML brut l'effacerait sinon
@@ -2619,6 +2794,18 @@ rafId = requestAnimationFrame(tickProgress);
 
 refreshBirthdays(); // puis se met à jour dès que le Google Sheets répond
 setInterval(refreshBirthdays, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
+
+async function refreshDailyMenu(){
+  const had = !!dailyMenu;
+  await fetchDailyMenu();
+  if(!!dailyMenu !== had){
+    rebuildAndRestart(); // la diapositive doit apparaître/disparaître
+  }else{
+    renderIfActive('menu');
+  }
+}
+refreshDailyMenu();
+setInterval(refreshDailyMenu, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
 
 fetchDailyAIContent(); // récupère le mot du jour / thème sécurité généré cette nuit par n8n
 setInterval(fetchDailyAIContent, CONFIG.DATA_SOURCES.REFRESH_MINUTES * 60000);
