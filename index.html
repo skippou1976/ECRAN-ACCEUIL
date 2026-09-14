@@ -1442,12 +1442,15 @@ async function fetchBirthdays(){
 }
 
 async function refreshBirthdays(){
-  const before = todaysBirthdays().length;
+  // comparaison sur la liste complète (pas seulement "aujourd'hui") : la boîte "anniversaires
+  // du mois" de la vue calendrier est construite une fois pour toutes dans le HTML du slide
+  // monthcal, donc tout changement de données (ex. le premier chargement qui remplace les
+  // données de secours par le vrai Google Sheets) doit reconstruire tous les slides, pas
+  // seulement rafraîchir l'écran "Joyeux anniversaire !" du jour
+  const before = JSON.stringify(birthdaysData);
   await fetchBirthdays();
-  if(todaysBirthdays().length !== before){
-    rebuildAndRestart(); // l'écran anniversaire doit apparaître/disparaître
-  }else{
-    renderIfActive('birthday');
+  if(JSON.stringify(birthdaysData) !== before){
+    rebuildAndRestart();
   }
 }
 
